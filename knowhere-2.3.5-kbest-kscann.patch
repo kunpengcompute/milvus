@@ -1,0 +1,1394 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 2bfab18..eb6f771 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -86,6 +86,9 @@ include(cmake/utils/compile_flags.cmake)
+ include(cmake/libs/libfaiss.cmake)
+ include(cmake/libs/libhnsw.cmake)
+ 
++include(cmake/libs/libkbest.cmake)
++include(cmake/libs/libkscann.cmake)
++
+ include_directories(thirdparty/faiss)
+ 
+ find_package(OpenMP REQUIRED)
+@@ -197,6 +200,28 @@ if(WITH_RAFT)
+     CUDA::cusparse
+     CUDA::cusolver)
+ endif()
++
++list(APPEND KNOWHERE_LINKER_LIBS
++  ${LIB_SCANN_PATH}
++  "/usr/local/sra_recall/lib/kscann/libkscann.so"
++  OpenMP::OpenMP_CXX
++  HDF5::HDF5
++  absl::statusor
++  absl::status
++  absl::base
++  absl::strings
++  absl::flat_hash_set
++  absl::synchronization
++  protobuf::libprotobuf
++  pthread
++  uuid
++  pybind11::embed
++  Python::Python
++)
++
++find_library(libkbest kbest PATHS /usr/local/sra_recall/lib/ REQUIRED)
++list(APPEND KNOWHERE_LINKER_LIBS ${libkbest})
++
+ target_link_libraries(knowhere PUBLIC ${KNOWHERE_LINKER_LIBS})
+ target_include_directories(knowhere PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+ 
+diff --git a/cmake/libs/libkbest.cmake b/cmake/libs/libkbest.cmake
+new file mode 100644
+index 0000000..667914c
+--- /dev/null
++++ b/cmake/libs/libkbest.cmake
+@@ -0,0 +1 @@
++include_directories(/usr/local/sra_recall/include/)
+\ No newline at end of file
+diff --git a/cmake/libs/libkscann.cmake b/cmake/libs/libkscann.cmake
+new file mode 100644
+index 0000000..a2970e6
+--- /dev/null
++++ b/cmake/libs/libkscann.cmake
+@@ -0,0 +1,82 @@
++include(CheckCXXCompilerFlag)
++check_cxx_compiler_flag("-march=armv8-a+sve" COMPILER_SUPPORTS_SVE)
++if(COMPILER_SUPPORTS_SVE)
++    include(CheckIncludeFileCXX)
++    check_include_file_cxx("arm_sve.h" HAVE_ARM_SVE_H)
++    if(HAVE_ARM_SVE_H)
++        include(CheckCXXSourceRuns)
++        set(CMAKE_REQUIRED_FLAGS "-march=armv8-a+sve")
++        check_cxx_source_runs("
++            #include <arm_sve.h>
++            int main() {
++                svuint32_t vec = svdup_n_u32(1);
++                int res = static_cast<int>(svaddv_u32(svptrue_b32(), vec));
++                return res != 0 ? 0 : 1;
++            }
++        " SVE_COMPILER)
++    endif()
++endif()
++
++if(SVE_COMPILER)
++    add_compile_options(
++        -O3
++        -fprefetch-loop-arrays
++        -march=armv8.2-a+lse+sve+dotprod
++        -mtune=tsv110
++        -fsized-deallocation
++        -w
++        -g
++        -fopenmp
++    )
++else()
++    add_compile_options(
++        -O3
++        -fprefetch-loop-arrays
++        -march=armv8.2-a+lse+dotprod
++        -mtune=tsv110
++        -fsized-deallocation
++        -w
++        -g
++        -fopenmp
++    )
++endif()
++
++set(ENV_LIB_NAME "OPEN_SCANN_LIB")
++if(DEFINED ENV{${ENV_LIB_NAME}})
++    file(TO_CMAKE_PATH "$ENV{${ENV_LIB_NAME}}" LIB_SCANN_PATH)
++else()
++    message(STATUS "'OPEN_SCANN_LIB' is not defined, using default value: ")
++    set(LIB_SCANN_PATH "/usr/local/sra_recall/lib/scann/libscann_cc.so")
++    message(STATUS "${LIB_SCANN_PATH}")
++endif()
++
++set(ENV_INCLUDE_NAME "OPEN_SCANN_INCLUDE")
++if(DEFINED ENV{${ENV_INCLUDE_NAME}})
++    file(TO_CMAKE_PATH "$ENV{${ENV_INCLUDE_NAME}}" INCLUDE_SCANN_PATH)
++else()
++    message(STATUS "'OPEN_SCANN_INCLUDE' is not defined, using default value: ")
++    set(INCLUDE_SCANN_PATH "/usr/local/sra_recall/include/scann/")
++    message(STATUS "${INCLUDE_SCANN_PATH}")
++endif()
++
++find_package(OpenMP REQUIRED)
++find_package(HDF5 REQUIRED COMPONENTS CXX)
++find_package(absl REQUIRED COMPONENTS base status statusor strings synchronization flat_hash_set)
++find_package(Protobuf REQUIRED)
++
++set(Python_FIND_VIRTUALENV FIRST)
++set(Python_FIND_STRATEGY LOCATION)
++find_package(Python REQUIRED COMPONENTS Interpreter Development)
++find_package(pybind11 REQUIRED)
++
++set(EIGEN3_INCLUDE_DIR "/usr/local/eigen-3.3.7/include/eigen3")
++set(KSL_INCLUDE_DIR "/usr/local/ksl/include/")
++include_directories(
++    ${INCLUDE_SCANN_PATH}
++    ${INCLUDE_SCANN_PATH}/bazel-bin
++    ${HDF5_INCLUDE_DIRS}
++    ${PROTOBUF_INCLUDE_DIR}
++    ${absl_INCLUDE_DIRS}
++    ${EIGEN3_INCLUDE_DIR}
++    ${KSL_INCLUDE_DIR}
++)
+\ No newline at end of file
+diff --git a/include/knowhere/comp/index_param.h b/include/knowhere/comp/index_param.h
+index 4526534..ecadb7d 100644
+--- a/include/knowhere/comp/index_param.h
++++ b/include/knowhere/comp/index_param.h
+@@ -55,6 +55,9 @@ constexpr const char* INDEX_DISKANN = "DISKANN";
+ 
+ constexpr const char* INDEX_SPARSE_INVERTED_INDEX = "SPARSE_INVERTED_INDEX";
+ constexpr const char* INDEX_SPARSE_WAND = "SPARSE_WAND";
++
++constexpr const char* INDEX_KBEST = "KBEST";
++constexpr const char* INDEX_KSCANN = "KSCANN";
+ }  // namespace IndexEnum
+ 
+ namespace ClusterEnum {
+@@ -146,6 +149,16 @@ constexpr const char* OVERVIEW_LEVELS = "overview_levels";
+ // Sparse Params
+ constexpr const char* DROP_RATIO_BUILD = "drop_ratio_build";
+ constexpr const char* DROP_RATIO_SEARCH = "drop_ratio_search";
++
++// KBest Params
++constexpr const char* KBEST_R = "R";
++constexpr const char* KBEST_L = "L";
++constexpr const char* KBEST_A = "A";
++constexpr const char* KBEST_INIT_BUILDER_TYPE = "init_builder_type";
++constexpr const char* KBEST_CONSECUTIVE = "consecutive";
++constexpr const char* KBEST_LEVEL = "level";
++constexpr const char* KBEST_EFS = "efs";
++constexpr const char* KBEST_NUM_SEARCH_THREAD = "num_search_thread";
+ }  // namespace indexparam
+ 
+ using MetricType = std::string;
+diff --git a/include/knowhere/config.h b/include/knowhere/config.h
+index 46ee0c0..ebfdb6f 100644
+--- a/include/knowhere/config.h
++++ b/include/knowhere/config.h
+@@ -621,6 +621,7 @@ class Config {
+     PARAM##_access
+ 
+ const float defaultRangeFilter = 1.0f / 0.0;
++const unsigned int kHardwareConcurrency = std::thread::hardware_concurrency();
+ 
+ class BaseConfig : public Config {
+  public:
+@@ -673,7 +674,7 @@ class BaseConfig : public Config {
+         KNOWHERE_CONFIG_DECLARE_FIELD(num_build_thread)
+             .description("index thread limit for build.")
+             .allow_empty_without_default()
+-            .set_range(1, std::thread::hardware_concurrency())
++            .set_range(1, kHardwareConcurrency)
+             .for_train();
+         KNOWHERE_CONFIG_DECLARE_FIELD(radius)
+             .set_default(0.0)
+diff --git a/include/knowhere/index/index_table.h b/include/knowhere/index/index_table.h
+index 275bdaf..b5602cf 100644
+--- a/include/knowhere/index/index_table.h
++++ b/include/knowhere/index/index_table.h
+@@ -73,6 +73,11 @@ static std::set<std::pair<std::string, VecType>> legal_knowhere_index = {
+     // sparse index
+     {IndexEnum::INDEX_SPARSE_INVERTED_INDEX, VecType::VECTOR_SPARSE_FLOAT},
+     {IndexEnum::INDEX_SPARSE_WAND, VecType::VECTOR_SPARSE_FLOAT},
++
++    // KBest index
++    {IndexEnum::INDEX_KBEST, VecType::VECTOR_FLOAT},
++    // KScaNN index
++    {IndexEnum::INDEX_KSCANN, VecType::VECTOR_FLOAT},
+ };
+ KNOWHERE_SET_STATIC_GLOBAL_INDEX_TABLE(KNOWHERE_STATIC_INDEX, legal_knowhere_index)
+ }  // namespace knowhere
+diff --git a/src/common/config.cc b/src/common/config.cc
+index 627c041..98ff852 100644
+--- a/src/common/config.cc
++++ b/src/common/config.cc
+@@ -85,7 +85,12 @@ Config::FormatAndCheck(const Config& cfg, Json& json, std::string* const err_msg
+                     json[it.first] = v;
+                 }
+                 if (std::get_if<Entry<CFG_FLOAT>>(&var)) {
+-                    CFG_FLOAT::value_type v = std::stof(json[it.first].get<std::string>().c_str());
++                    CFG_FLOAT::value_type v;
++                    if (json[it.first].get<std::string>() == "<nil>") {
++                        v = std::numeric_limits<float>::quiet_NaN();
++                    } else {
++                        v = std::stof(json[it.first].get<std::string>().c_str());
++                    }
+                     json[it.first] = v;
+                 }
+ 
+diff --git a/src/index/kbest/kbest.cc b/src/index/kbest/kbest.cc
+new file mode 100644
+index 0000000..8ffe79f
+--- /dev/null
++++ b/src/index/kbest/kbest.cc
+@@ -0,0 +1,300 @@
++#include "index/kbest/kbest_config.h"
++#include "kbest.h"
++
++#include <numa.h>
++#include <limits>
++
++#include "knowhere/comp/index_param.h"
++#include "knowhere/comp/thread_pool.h"
++#include "knowhere/comp/time_recorder.h"
++#include "knowhere/config.h"
++#include "knowhere/expected.h"
++#include "knowhere/index/index_factory.h"
++#include "knowhere/index/index_node_data_mock_wrapper.h"
++#include "knowhere/log.h"
++#include "knowhere/range_util.h"
++#include "knowhere/utils.h"
++#include "io/memory_io.h"
++
++namespace knowhere {
++
++template <typename DataType>
++
++class KbestIndexNode : public IndexNode {
++public:
++
++    KbestIndexNode(const int32_t& /* version */, const Object& object) : indexSize_(0),
++                                                                         index_(nullptr),
++                                                                         data_(nullptr) {}
++
++    Status Train(const DataSet& dataset, const Config& cfg) override {
++        NUMA_ENABLED = false;
++        auto dim = dataset.GetDim();
++        auto kbest_cfg = static_cast<const KbestConfig&>(cfg);
++        auto index = new (std::nothrow) KBest((int)dim, kbest_cfg.R.value(), kbest_cfg.L.value(), kbest_cfg.A.value(),
++                                              kbest_cfg.metric_type.value().c_str(),
++                                              kbest_cfg.init_builder_type.value());
++        if (index == nullptr) {
++            LOG_KNOWHERE_WARNING_ << "memory malloc error.";
++            return Status::malloc_error;
++        }
++        if (this->index_) {
++            delete this->index_;
++            this->index_ = nullptr;
++            LOG_KNOWHERE_WARNING_ << "index not empty, deleted old index.";
++        }
++        this->index_ = index;
++        return Status::success;
++    }
++
++    void normalize(float *data, int length) {
++        float norm = 0.0f;
++        for (int i = 0; i < length; ++i) {
++            norm += data[i] * data[i];
++        }
++        norm = std::sqrt(norm);
++        if (std::fabs(norm) > std::numeric_limits<float>::epsilon()) {
++            for (int i = 0; i < length; ++i) {
++                data[i] /= norm;
++                assert(!isnan(data[i]));
++            }
++        }
++    }
++
++    Status Add(const DataSet& dataset, const Config& cfg) override {
++        if (!index_) {
++            LOG_KNOWHERE_ERROR_ << "Can not add data to empty KBEST index.";
++            return Status::empty_index;
++        }
++
++        auto rows = dataset.GetRows();
++        if (rows <= 0) {
++            LOG_KNOWHERE_ERROR_ << "Can not add empty data to KBEST index.";
++            return Status::empty_index;
++        }
++
++        auto dim = dataset.GetDim();
++        auto kbest_cfg = static_cast<const KbestConfig&>(cfg);
++        int consecutiveLog = kbest_cfg.consecutive.value();
++        int level = kbest_cfg.level.value();
++
++        float *data = const_cast<float *>(static_cast<const float *>(dataset.GetTensor()));
++        data_ = new (std::nothrow) float[dim * rows];
++        if (data_ == nullptr) {
++            LOG_KNOWHERE_WARNING_ << "failed to create data.";
++            return Status::index_not_trained;
++        }
++        memcpy(data_, data, dim * rows * sizeof(float));
++
++        if (kbest_cfg.metric_type.value() == "IP") {
++            for (int i = 0; i < rows; ++i) {
++                normalize(data_ + i * dim, dim);
++            }
++        }
++
++        if (index_->Add(rows, data_, consecutiveLog, level) != 0) {
++            LOG_KNOWHERE_WARNING_ << "failed to build.";
++            return Status::index_not_trained;
++        }
++        index_->BuildSearcher();
++        return Status::success;
++    }
++
++    expected<DataSetPtr> Search(const DataSet& dataset, const Config& cfg, const BitsetView& bitset) const override {
++        if (!index_) {
++            LOG_KNOWHERE_WARNING_ << "Search on empty index.";
++            return expected<DataSetPtr>::Err(Status::empty_index, "index not loaded");
++        }
++
++        auto dim = dataset.GetDim();
++        auto rows = dataset.GetRows();
++        float *data = const_cast<float *>(static_cast<const float *>(dataset.GetTensor()));
++        auto kbest_cfg = static_cast<const KbestConfig&>(cfg);
++        int closestNum = kbest_cfg.k.value();
++
++        if (kbest_cfg.metric_type.value() == "IP") {
++            for (int i = 0; i < rows; ++i) {
++                float norm = 0.0f;
++                float *tmp = data + i * dim;
++                for (int j = 0; j < dim; ++j) {
++                    norm += tmp[j] * tmp[j];
++                }
++                norm = std::sqrt(norm);
++                if (std::fabs(norm) > std::numeric_limits<float>::epsilon()) {
++                    for (int j = 0; j < dim; ++j) {
++                        tmp[j] /= norm;
++                        assert(!isnan(tmp[j]));
++                    }
++                }
++            }
++        }
++
++        if (index_->SetEf(kbest_cfg.efs.value()) != 0) {
++            LOG_KNOWHERE_WARNING_ << "failed to set ef.";
++            return expected<DataSetPtr>::Err(Status::not_implemented, "SetEf not implemented");
++        }
++
++        float *distances = new (std::nothrow) float[rows * closestNum]();
++        if (distances == nullptr) {
++            LOG_KNOWHERE_WARNING_ << "failed to create distances.";
++            return expected<DataSetPtr>::Err(Status::not_implemented, "Search not implemented");
++        }
++
++        int64_t *labels = new (std::nothrow) int64_t[rows * closestNum]();
++        if (labels == nullptr) {
++            delete[] distances;
++            distances = nullptr;
++            LOG_KNOWHERE_WARNING_ << "failed to create labels, free memory space.";
++            return expected<DataSetPtr>::Err(Status::not_implemented, "Search not implemented");
++        }
++
++        if (index_->Search(rows, data, closestNum, distances, labels,
++                           kbest_cfg.num_search_thread.value()) != 0) {
++            delete[] distances;
++            distances = nullptr;
++            delete[] labels;
++            labels = nullptr;
++            LOG_KNOWHERE_WARNING_ << "failed to search, free memory space.";
++            return expected<DataSetPtr>::Err(Status::not_implemented, "Search not implemented");
++        }
++
++        auto res = GenResultDataSet(rows, closestNum, labels, const_cast<const float *>(distances));
++        return res;
++    }
++
++    expected<DataSetPtr> GetVectorByIds(const DataSet& dataset) const override {
++        return expected<DataSetPtr>::Err(Status::not_implemented, "GetVectorByIds not implemented");
++    }
++
++    bool HasRawData(const std::string& metric_type) const override {
++        // 未实现 GetVectorByIds，直接返回 false
++        return false;
++    }
++
++    expected<DataSetPtr> GetIndexMeta(const Config& cfg) const override {
++        if (!index_) {
++            LOG_KNOWHERE_WARNING_ << "get index meta on empty index.";
++            return expected<DataSetPtr>::Err(Status::empty_index, "index not loaded");
++        }
++        return expected<DataSetPtr>::Err(Status::not_implemented, "GetIndexMeta not implemented");
++    }
++
++    Status Serialize(BinarySet& binset) const override {
++        if (!index_) {
++            LOG_KNOWHERE_WARNING_ << "Can not serialize empty KBEST index.";
++            return Status::empty_index;
++        }
++
++        uint8_t *dataPtr = nullptr;
++        size_t dataLength = 0;
++        try {
++            MemoryIOWriter writer;
++
++            if (index_->Serialize(dataPtr, dataLength) != 0) {
++                LOG_KNOWHERE_WARNING_ << "failed to serialize KBEST index.";
++                return Status::not_implemented;
++            }
++            writer.write((char *)dataPtr, dataLength);
++            delete[] dataPtr;
++            dataPtr = nullptr;
++
++            std::shared_ptr<uint8_t[]> data(writer.data());
++            binset.Append(Type(), data, writer.tellg());
++        } catch (std::exception& e) {
++            if (dataPtr) {
++                delete[] dataPtr;
++                dataPtr = nullptr;
++            }
++            LOG_KNOWHERE_WARNING_ << "kbest inner error: " << e.what();
++            return Status::not_implemented;
++        }
++        return Status::success;
++    }
++
++    Status Deserialize(const BinarySet& binset, const Config& config) override {
++        if (index_) {
++            delete index_;
++            index_ = nullptr;
++            LOG_KNOWHERE_WARNING_ << "index not empty, deleted old index.";
++        }
++
++        try {
++            auto binary = binset.GetByName(Type());
++            if (binary == nullptr) {
++                LOG_KNOWHERE_WARNING_ << "Invalid binary set.";
++                return Status::invalid_binary_set;
++            }
++            indexSize_ = binary->size;
++
++            index_ = new (std::nothrow) KBest();
++            if (index_ == nullptr) {
++                LOG_KNOWHERE_WARNING_ << "failed to create KBEST index.";
++                return Status::not_implemented;
++            }
++
++            if (index_->Deserialize(binary->data.get(), binary->size) != 0) {
++                LOG_KNOWHERE_WARNING_ << "failed to deserialize KBEST index.";
++                return Status::not_implemented;
++            }
++            LOG_KNOWHERE_INFO_ << "Loaded KBEST index.";
++        } catch (std::exception& e) {
++            LOG_KNOWHERE_WARNING_ << "kbest inner error: " << e.what();
++            return Status::not_implemented;
++        }
++        return Status::success;
++    }
++
++    Status DeserializeFromFile(const std::string& filename, const Config& config) override {
++        return Status::not_implemented;
++    }
++
++    std::unique_ptr<BaseConfig> CreateConfig() const override {
++        NUMA_ENABLED = false;
++        return std::make_unique<KbestConfig>();
++    }
++
++    int64_t Dim() const override {
++        if (!index_) {
++            return 0;
++        }
++        return index_->GetDim();
++    }
++
++    int64_t Size() const override {
++        if (!index_) {
++            return 0;
++        }
++        return indexSize_;
++    }
++
++    int64_t Count() const override {
++        if (!index_) {
++            return 0;
++        }
++        return index_->GetNTotal();
++    }
++
++    std::string Type() const override {
++        return knowhere::IndexEnum::INDEX_KBEST;
++    }
++
++    ~KbestIndexNode() override {
++        if (data_) {
++            delete[] data_;
++            data_ = nullptr;
++        }
++        if (index_) {
++            delete index_;
++            index_ = nullptr;
++        }
++    }
++
++private:
++    int64_t indexSize_;
++    KBest *index_;
++    float *data_;
++};
++
++KNOWHERE_SIMPLE_REGISTER_GLOBAL(KBEST, KbestIndexNode, fp32);
++
++}   // namespace knowhere
+\ No newline at end of file
+diff --git a/src/index/kbest/kbest_config.h b/src/index/kbest/kbest_config.h
+new file mode 100644
+index 0000000..0436b41
+--- /dev/null
++++ b/src/index/kbest/kbest_config.h
+@@ -0,0 +1,138 @@
++#ifndef KBEST_CONFIG_H
++#define KBEST_CONFIG_H
++
++#include "knowhere/comp/index_param.h"
++#include "knowhere/config.h"
++
++namespace knowhere {
++
++namespace {
++
++constexpr const CFG_INT::value_type kEfMinValues = 16;
++
++}   // namespace
++
++class KbestConfig : public BaseConfig {
++public:
++    CFG_INT R;
++    CFG_INT L;
++    CFG_INT A;
++    CFG_STRING build_index_type;
++    CFG_STRING init_builder_type;
++    CFG_INT graph_opt_iter;
++    CFG_BOOL reorder;
++    CFG_INT consecutive;
++    CFG_INT level;
++    CFG_INT efs;
++    CFG_INT num_search_thread;
++    CFG_INT adding_pref;
++    CFG_INT patience;
++
++    KNOHWERE_DECLARE_CONFIG(KbestConfig) {
++        KNOWHERE_CONFIG_DECLARE_FIELD(R)
++            .description("kbest R")
++            .set_default(50)
++            .set_range(11, 499)
++            .for_train();
++        KNOWHERE_CONFIG_DECLARE_FIELD(L)
++            .description("kbest efConstruction")
++            .set_default(100)
++            .set_range(11, 1999)
++            .for_train();
++        KNOWHERE_CONFIG_DECLARE_FIELD(A)
++            .description("kbest angle threshold")
++            .set_default(60)
++            .set_range(10, 360)
++            .for_train();
++        KNOWHERE_CONFIG_DECLARE_FIELD(build_index_type)
++            .description("kbest index type[HNSW/SSG/NSG/TSDG]")
++            .allow_empty_without_default()
++            .for_train();
++        KNOWHERE_CONFIG_DECLARE_FIELD(init_builder_type)
++            .description("kbest builder type[NNDescent/RNNDescent]")
++            .allow_empty_without_default()
++            .for_train();
++        KNOWHERE_CONFIG_DECLARE_FIELD(graph_opt_iter)
++            .description("kbest graph link iter num")
++            .set_default(1)
++            .set_range(0, 30)
++            .for_train();
++        KNOWHERE_CONFIG_DECLARE_FIELD(reorder)
++            .description("kbest reorder")
++            .set_default(true)
++            .for_train();
++        KNOWHERE_CONFIG_DECLARE_FIELD(consecutive)
++            .description("kbest block")
++            .set_default(20)
++            .set_range(1, 31)
++            .for_train();
++        KNOWHERE_CONFIG_DECLARE_FIELD(level)
++            .description("kbest qLevel")
++            .set_default(2)
++            .set_range(0, 3)
++            .for_train();
++        KNOWHERE_CONFIG_DECLARE_FIELD(efs)
++            .description("kbest efSearch")
++            .allow_empty_without_default()
++            .set_range(1, std::numeric_limits<CFG_INT::value_type>::max())
++            .for_search();
++        KNOWHERE_CONFIG_DECLARE_FIELD(num_search_thread)
++            .description("index thread limit for search")
++            .allow_empty_without_default()
++            .set_range(1, kHardwareConcurrency)
++            .for_search();
++        KNOWHERE_CONFIG_DECLARE_FIELD(adding_pref)
++            .description("kbest adding_pref")
++            .set_default(52)
++            .set_range(1, std::numeric_limits<CFG_INT::value_type>::max())
++            .for_search();
++        KNOWHERE_CONFIG_DECLARE_FIELD(patience)
++            .description("kbest patience")
++            .set_default(80)
++            .set_range(1, std::numeric_limits<CFG_INT::value_type>::max())
++            .for_search();
++    }
++
++    Status
++    CheckAndAdjust(PARAM_TYPE param_type, std::string* err_msg) override {
++        switch (param_type) {
++            case PARAM_TYPE::TRAIN: {
++                if (!build_index_type.has_value()) {
++                    build_index_type = "SSG";
++                } else if (build_index_type != "SSG" && build_index_type != "NSG" &&
++                           build_index_type != "TSDG" && build_index_type != "HNSW") {
++                    *err_msg = "build_index_type should be SSG or NSG or TSDG or HNSW";
++                    LOG_KNOWHERE_ERROR_ << *err_msg;
++                    return Status::out_of_range_in_json;
++                }
++                if (!init_builder_type.has_value()) {
++                    init_builder_type = "RNNDescent";
++                } else if (init_builder_type != "RNNDescent" && init_builder_type != "NNDescent") {
++                    *err_msg = "init_builder_type should be RNNDescent or NNDescent";
++                    LOG_KNOWHERE_ERROR_ << *err_msg;
++                    return Status::out_of_range_in_json;
++                }
++            }
++            case PARAM_TYPE::SEARCH: {
++                if (!efs.has_value()) {
++                    efs = std::max(k.value(), kEfMinValues);
++                } else if (k.value() > efs.value()) {
++                    *err_msg = "efs(" + std::to_string(efs.value()) + ") should be larger than k(" +
++                               std::to_string(k.value()) + ")";
++                    LOG_KNOWHERE_ERROR_ << *err_msg;
++                    return Status::out_of_range_in_json;
++                }
++                if (!num_search_thread.has_value()) {
++                    num_search_thread = 1;
++                }
++                break;
++            }
++            default:
++                break;
++        }
++        return Status::success;
++    }
++};
++}   // namespace knowhere
++
++#endif	/* KBEST_CONFIG_H */
+diff --git a/src/index/kscann/kscann.cc b/src/index/kscann/kscann.cc
+new file mode 100644
+index 0000000..25aa0f2
+--- /dev/null
++++ b/src/index/kscann/kscann.cc
+@@ -0,0 +1,376 @@
++#include "index/kscann/kscann_config.h"
++#include "scann/scann_ops/cc/scann.h"
++#include "scann/proto/scann.pb.h"
++#include "cmdline.h"
++
++#include <numa.h>
++#include <cstdlib>
++#include <limits>
++#include <pybind11/embed.h>
++#include <filesystem>
++
++#include "knowhere/comp/index_param.h"
++#include "knowhere/comp/thread_pool.h"
++#include "knowhere/comp/time_recorder.h"
++#include "knowhere/config.h"
++#include "knowhere/expected.h"
++#include "knowhere/index/index_factory.h"
++#include "knowhere/index/index_node_data_mock_wrapper.h"
++#include "knowhere/log.h"
++#include "knowhere/range_util.h"
++#include "knowhere/utils.h"
++#include "io/memory_io.h"
++
++using namespace research_scann;
++
++namespace knowhere {
++
++namespace py = pybind11;
++namespace fs = std::filesystem;
++
++template <typename DataType>
++
++class KscannIndexNode : public IndexNode {
++public:
++
++    KscannIndexNode(const int32_t& /* version */, const Object& object) : indexSize_(0),
++                                                                          index_(nullptr),
++                                                                          data_(nullptr) {}
++
++    Status Train(const DataSet& dataset, const Config& cfg) override {
++        ScannInterface *index = new (std::nothrow) ScannInterface();
++        if (index == nullptr) {
++            LOG_KNOWHERE_WARNING_ << "memory malloc error.";
++            return Status::malloc_error;
++        }
++        if (this->index_) {
++            delete this->index_;
++            this->index_ = nullptr;
++            LOG_KNOWHERE_WARNING_ << "index not empty, deleted old index.";
++        }
++        this->index_ = index;
++        return Status::success;
++    }
++
++    void normalizeVector(float *data, int size) {
++        float norm = 0.0f;
++        for (int i = 0; i < size; ++i) {
++            norm += data[i] * data[i];
++        }
++        norm = std::sqrt(norm);
++        if (std::fabs(norm) <= std::numeric_limits<float>::epsilon()) {
++            for (int i = 0; i < size; ++i) {
++                data[i] = 1.0f / std::sqrt(size);
++            }
++        } else {
++            for (int i = 0; i < size; ++i) {
++                data[i] /= norm;
++            }
++        }
++    }
++
++    Status Add(const DataSet& dataset, const Config& cfg) override {
++        if (!index_) {
++            LOG_KNOWHERE_ERROR_ << "Can not add data to empty KScaNN index.";
++            return Status::empty_index;
++        }
++
++        auto rows = dataset.GetRows();
++        if (rows <= 0) {
++            LOG_KNOWHERE_ERROR_ << "Can not add empty data to KScaNN index.";
++            return Status::empty_index;
++        }
++
++        auto dim = dataset.GetDim();
++        auto kscann_cfg = static_cast<const KscannConfig&>(cfg);
++
++        float *data = const_cast<float *>(static_cast<const float *>(dataset.GetTensor()));
++        data_ = new (std::nothrow) float[dim * rows];
++        if (data_ == nullptr) {
++            LOG_KNOWHERE_WARNING_ << "failed to create data.";
++            return Status::index_not_trained;
++        }
++        memcpy(data_, data, dim * rows * sizeof(float));
++
++        bool spherical = true;
++        std::string metric_type = "";
++        if (kscann_cfg.metric_type.value() == "L2") {
++            metric_type = "squared_l2";
++            spherical = false;
++        } else if (kscann_cfg.metric_type.value() == "IP") {
++            metric_type = "dot_product";
++            for (int i = 0; i < rows; ++i) {
++                normalizeVector(data_ + i * dim, dim);
++            }
++        } else {
++            LOG_KNOWHERE_WARNING_ << "Unsupported metric type!";
++            return Status::index_not_trained;
++        }
++        ConstSpan<float> data_init(data_, rows * dim);
++
++        const char *var_name = "OPEN_SCANN_INCLUDE";
++        const char *var_value = std::getenv(var_name);
++        if (var_value == nullptr || !fs::exists(var_value) || !fs::is_directory(var_value)) {
++            LOG_KNOWHERE_WARNING_ << "failed to get the path of the create_config.py file!";
++            LOG_KNOWHERE_WARNING_ << "It should be in ${OPEN_SCANN_INCLUDE}.";
++            return Status::index_not_trained;
++        }
++
++        py::scoped_interpreter guard{};
++        py::module_ sys = py::module_::import("sys");
++        sys.attr("path").attr("append")(var_value);
++        std::string config;
++
++        try {
++            py::module_ scann_module = py::module_::import("create_config");
++            py::object scann_configer = scann_module.attr("ScannConfiger");
++            py::object result = scann_configer(dim, kscann_cfg.k.value(), metric_type)
++                .attr("tree")(kscann_cfg.n_leaves.value(), 1, py::arg("training_sample_size")=rows, py::arg("spherical")=spherical, py::arg("quantize_centroids")=true)
++                .attr("score_ah")(kscann_cfg.dims_per_block.value(), py::arg("anisotropic_quantization_threshold")=kscann_cfg.avq_threshold.value())
++                .attr("reorder")(1)
++                .attr("create_config")();
++            config = result.cast<std::string>();
++        } catch (const std::exception &e) {
++            LOG_KNOWHERE_WARNING_ << "KScaNN inner error: " << e.what();
++            return Status::not_implemented;
++        }
++
++        auto status = index_->Initialize(data_init, rows, config, kscann_cfg.train_thread.value());
++        if (!status.ok()) {
++            LOG_KNOWHERE_WARNING_ << "failed to initialize.";
++            return Status::index_not_trained;
++        } 
++        return Status::success;
++    }
++
++    expected<DataSetPtr> Search(const DataSet& dataset, const Config& cfg, const BitsetView& bitset) const override {
++        if (!index_) {
++            LOG_KNOWHERE_WARNING_ << "Search on empty index.";
++            return expected<DataSetPtr>::Err(Status::empty_index, "index not loaded");
++        }
++
++        auto dim = dataset.GetDim();
++        auto rows = dataset.GetRows();
++        float *data = const_cast<float *>(static_cast<const float *>(dataset.GetTensor()));
++        auto kscann_cfg = static_cast<const KscannConfig&>(cfg);
++        int closestNum = kscann_cfg.k.value();
++
++        if (kscann_cfg.metric_type.value() == "IP") {
++            for (int i = 0; i < rows; ++i) {
++                float norm = 0.0f;
++                float *tmp = data + i * dim;
++                for (int j = 0; j < dim; ++j) {
++                    norm += tmp[j] * tmp[j];
++                }
++                norm = std::sqrt(norm);
++                if (std::fabs(norm) <= std::numeric_limits<float>::epsilon()) {
++                    for (int j = 0; j < dim; ++j) {
++                        tmp[j] = 1.0f / std::sqrt(dim);
++                    }
++                } else {
++                    for (int j = 0; j < dim; ++j) {
++                        tmp[j] /= norm;
++                    }
++                }
++            }
++        }
++
++        index_->SetNumThreads(kscann_cfg.num_thread.value());
++
++        float *distances = new (std::nothrow) float[rows * closestNum]();
++        if (distances == nullptr) {
++            LOG_KNOWHERE_WARNING_ << "failed to create distances.";
++            return expected<DataSetPtr>::Err(Status::not_implemented, "Search not implemented");
++        }
++
++        int64_t *labels = new (std::nothrow) int64_t[rows * closestNum]();
++        if (labels == nullptr) {
++            delete[] distances;
++            distances = nullptr;
++            LOG_KNOWHERE_WARNING_ << "failed to create labels, free memory space.";
++            return expected<DataSetPtr>::Err(Status::not_implemented, "Search not implemented");
++        }
++
++        std::vector<float> querys(rows * (size_t)(dim));
++        for (size_t i = 0; i < rows; ++i) {
++            for (size_t j = 0; j < dim; ++j) {
++                querys[i * dim + j] = data[i * dim + j];
++            }
++        }
++        DenseDataset<float> query_data(std::move(querys), rows);
++        NNResultsVector *res = new (std::nothrow) NNResultsVector[query_data.size()];
++        if (res == nullptr) {
++            delete[] distances;
++            distances = nullptr;
++            delete[] labels;
++            labels = nullptr;
++            LOG_KNOWHERE_WARNING_ << "failed to create res, free memory space.";
++            return expected<DataSetPtr>::Err(Status::not_implemented, "Search not implemented");
++        }
++
++        auto status = index_->SearchBatched(query_data, MutableSpan<NNResultsVector>(res, query_data.size()),
++                                            closestNum, kscann_cfg.reorder.value(),
++                                            kscann_cfg.nprobe.value());
++
++        if (!status.ok()) {
++            delete[] distances;
++            distances = nullptr;
++            delete[] labels;
++            labels = nullptr;
++            delete[] res;
++            res = nullptr;
++            LOG_KNOWHERE_WARNING_ << "kscann inner error: Search not implemented.";
++            return expected<DataSetPtr>::Err(Status::not_implemented, "Search not implemented");
++        }
++
++        for (size_t i = 0; i < rows; ++i) {
++            for (size_t j = 0; j < closestNum; ++j) {
++                labels[i * closestNum + j] = res[i][j].first;
++                distances[i * closestNum + j] = res[i][j].second;
++            }
++        }
++        delete[] res;
++        res = nullptr;
++
++        auto result = GenResultDataSet(rows, closestNum, labels, const_cast<const float *>(distances));
++        return result;
++    }
++
++    expected<DataSetPtr> GetVectorByIds(const DataSet& dataset) const override {
++        return expected<DataSetPtr>::Err(Status::not_implemented, "GetVectorByIds not implemented");
++    }
++
++    bool HasRawData(const std::string& metric_type) const override {
++        // 未实现 GetVectorByIds，直接返回 false
++        return false;
++    }
++
++    expected<DataSetPtr> GetIndexMeta(const Config& cfg) const override {
++        if (!index_) {
++            LOG_KNOWHERE_WARNING_ << "get index meta on empty index.";
++            return expected<DataSetPtr>::Err(Status::empty_index, "index not loaded");
++        }
++        return expected<DataSetPtr>::Err(Status::not_implemented, "GetIndexMeta not implemented");
++    }
++
++    Status Serialize(BinarySet& binset) const override {
++        if (!index_) {
++            LOG_KNOWHERE_WARNING_ << "Can not serialize empty KScaNN index.";
++            return Status::empty_index;
++        }
++
++        uint8_t *dataPtr = nullptr;
++        size_t dataLength = 0;
++        try {
++            MemoryIOWriter writer;
++
++            if (index_->SerializeToMemory(dataPtr, dataLength) != 0) {
++                LOG_KNOWHERE_WARNING_ << "failed to serialize KScaNN index.";
++                return Status::not_implemented;
++            }
++            writer.write((char *)dataPtr, dataLength);
++            delete[] dataPtr;
++            dataPtr = nullptr;
++
++            std::shared_ptr<uint8_t[]> data(writer.data());
++            binset.Append(Type(), data, writer.tellg());
++        } catch (std::exception& e) {
++            if (dataPtr) {
++                delete[] dataPtr;
++                dataPtr = nullptr;
++            }
++            LOG_KNOWHERE_WARNING_ << "KScaNN inner error: " << e.what();
++            return Status::not_implemented;
++        }
++        return Status::success;
++    }
++
++    Status Deserialize(const BinarySet& binset, const Config& config) override {
++        if (index_) {
++            delete index_;
++            index_ = nullptr;
++            LOG_KNOWHERE_WARNING_ << "index not empty, deleted old index.";
++        }
++
++        try {
++            auto binary = binset.GetByName(Type());
++            if (binary == nullptr) {
++                LOG_KNOWHERE_WARNING_ << "Invalid binary set.";
++                return Status::invalid_binary_set;
++            }
++            indexSize_ = binary->size;
++
++            index_ = new (std::nothrow) ScannInterface();
++            if (index_ == nullptr) {
++                LOG_KNOWHERE_WARNING_ << "failed to create KScaNN index.";
++                return Status::not_implemented;
++            }
++
++            uint8_t *dataPtr = binary->data.get();
++            size_t dataLength = binary->size;
++            if (index_->LoadFromMemory(dataPtr, dataLength) != 0) {
++                LOG_KNOWHERE_WARNING_ << "failed to deserialize KScaNN index.";
++                return Status::not_implemented;
++            }
++            LOG_KNOWHERE_INFO_ << "Loaded KScaNN index.";
++        } catch (std::exception& e) {
++            LOG_KNOWHERE_WARNING_ << "KScaNN inner error: " << e.what();
++            return Status::not_implemented;
++        }
++        return Status::success;
++    }
++
++    Status DeserializeFromFile(const std::string& filename, const Config& config) override {
++        return Status::not_implemented;
++    }
++
++    std::unique_ptr<BaseConfig> CreateConfig() const override {
++        
++        return std::make_unique<KscannConfig>();
++    }
++
++    int64_t Dim() const override {
++        if (!index_) {
++            return 0;
++        }
++        return index_->GetDim();
++    }
++
++    int64_t Size() const override {
++        if (!index_) {
++            return 0;
++        }
++        return indexSize_;
++    }
++
++    int64_t Count() const override {
++        if (!index_) {
++            return 0;
++        }
++        return index_->GetNum();
++    }
++
++    std::string Type() const override {
++        return knowhere::IndexEnum::INDEX_KSCANN;
++    }
++
++    ~KscannIndexNode() override {
++        if (data_) {
++            delete[] data_;
++            data_ = nullptr;
++        }
++        if (index_) {
++            delete index_;
++            index_ = nullptr;
++        }
++    }
++
++private:
++    int64_t indexSize_;
++    ScannInterface *index_;
++    float *data_;
++};
++
++KNOWHERE_SIMPLE_REGISTER_GLOBAL(KSCANN, KscannIndexNode, fp32);
++
++}   // namespace knowhere
+\ No newline at end of file
+diff --git a/src/index/kscann/kscann_config.h b/src/index/kscann/kscann_config.h
+new file mode 100644
+index 0000000..2592bf9
+--- /dev/null
++++ b/src/index/kscann/kscann_config.h
+@@ -0,0 +1,115 @@
++#ifndef KSCANN_CONFIG_H
++#define KSCANN_CONFIG_H
++
++#include "knowhere/comp/index_param.h"
++#include "knowhere/config.h"
++
++namespace knowhere {
++
++class KscannConfig : public BaseConfig {
++public:
++    CFG_INT n_leaves;
++    CFG_INT dims_per_block;
++    CFG_FLOAT avq_threshold;
++    CFG_FLOAT soar_lambda;
++    CFG_FLOAT overretrieve_factor;
++    CFG_INT train_thread;
++    
++    CFG_INT nprobe;
++    CFG_INT reorder;
++    CFG_FLOAT adp_threshold;
++    CFG_INT adp_refined;
++    CFG_INT num_thread;
++    CFG_INT batch_size;
++
++    KNOHWERE_DECLARE_CONFIG(KscannConfig) {
++        KNOWHERE_CONFIG_DECLARE_FIELD(n_leaves)
++            .description("kscann leaf node")
++            .set_default(2000)
++            .for_train();
++        KNOWHERE_CONFIG_DECLARE_FIELD(dims_per_block)
++            .description("kscann dims per block")
++            .set_default(4)
++            .for_train();
++        KNOWHERE_CONFIG_DECLARE_FIELD(avq_threshold)
++            .description("kscann avq threshold")
++            .allow_empty_without_default()
++            .for_train();
++        KNOWHERE_CONFIG_DECLARE_FIELD(soar_lambda)
++            .description("kscann soar lambda")
++            .allow_empty_without_default()
++            .for_train();
++        KNOWHERE_CONFIG_DECLARE_FIELD(overretrieve_factor)
++            .description("kscann overretrieve factor")
++            .allow_empty_without_default()
++            .for_train();
++        KNOWHERE_CONFIG_DECLARE_FIELD(train_thread)
++            .description("kscann train thread")
++            .set_default(kHardwareConcurrency)
++            .for_train();
++        KNOWHERE_CONFIG_DECLARE_FIELD(nprobe)
++            .description("kscann nprobe")
++            .set_default(200)
++            .set_range(1, n_leaves.value())
++            .for_search();
++        KNOWHERE_CONFIG_DECLARE_FIELD(reorder)
++            .description("kscann reorder")
++            .set_default(900)
++            .set_range(k.value(), std::numeric_limits<CFG_INT::value_type>::max())
++            .for_search();
++        KNOWHERE_CONFIG_DECLARE_FIELD(adp_threshold)
++            .description("kscann adp_threshold")
++            .set_default(0.2)
++            .set_range(0, 0.8)
++            .for_search();
++        KNOWHERE_CONFIG_DECLARE_FIELD(adp_refined)
++            .description("kscann adp_refined")
++            .set_default(0)
++            .set_range(0, nprobe.value())
++            .for_search();
++        KNOWHERE_CONFIG_DECLARE_FIELD(num_thread)
++            .description("kscann num_thread")
++            .set_default(1)
++            .set_range(1, std::numeric_limits<CFG_INT::value_type>::max())
++            .for_search();
++        KNOWHERE_CONFIG_DECLARE_FIELD(batch_size)
++            .description("kscann batch size")
++            .set_default(1)
++            .set_range(1, std::numeric_limits<CFG_INT::value_type>::max())
++            .for_search();
++    }
++
++    Status
++    CheckAndAdjust(PARAM_TYPE param_type, std::string* err_msg) override {
++        switch (param_type) {
++            case PARAM_TYPE::TRAIN: {
++                if (!avq_threshold.has_value()) {
++                    avq_threshold = std::numeric_limits<float>::quiet_NaN();
++                }
++
++                if (!soar_lambda.has_value()) {
++                    soar_lambda = -1;
++                } else if (soar_lambda.value() <= 0 && soar_lambda.value() != -1) {
++                    *err_msg = "soar_lambda(" + std::to_string(soar_lambda.value()) +
++                               ") should be greater than 0 or equal to -1";
++                    LOG_KNOWHERE_ERROR_ << *err_msg;
++                    return Status::out_of_range_in_json;
++                }
++                if (!overretrieve_factor.has_value()) {
++                    overretrieve_factor = -1;
++                } else if ((overretrieve_factor.value() < 1 || overretrieve_factor.value() > 2) && overretrieve_factor.value() != -1) {
++                    *err_msg = "overretrieve_factor(" + std::to_string(overretrieve_factor.value()) +
++                               ") should be [1, 2] or equal to -1";
++                    LOG_KNOWHERE_ERROR_ << *err_msg;
++                    return Status::out_of_range_in_json;
++                }
++            }
++            default:
++                break;
++        }
++        return Status::success;
++    }
++};
++}   // namespace knowhere
++
++#endif	/* KSCANN_CONFIG_H*/
+\ No newline at end of file
+diff --git a/tests/ut/test_kbest.cc b/tests/ut/test_kbest.cc
+new file mode 100644
+index 0000000..9e0267f
+--- /dev/null
++++ b/tests/ut/test_kbest.cc
+@@ -0,0 +1,205 @@
++// Copyright (C) 2025 Huawei and/or its affiliates. All rights reserved.
++//
++// Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance
++// with the License. You may obtain a copy of the License at
++//
++// http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software distributed under the License
++// is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
++// or implied. See the License for the specific language governing permissions and limitations under the License.
++
++#include <future>
++
++#include "catch2/catch_approx.hpp"
++#include "catch2/catch_test_macros.hpp"
++#include "catch2/generators/catch_generators.hpp"
++#include "knowhere/comp/brute_force.h"
++#include "knowhere/comp/index_param.h"
++#include "knowhere/comp/knowhere_config.h"
++#include "knowhere/index/index_factory.h"
++#include "utils.h"
++
++namespace {
++constexpr float kKnnRecallThreshold = 0.95f;
++}  // namespace
++
++TEST_CASE("Test KBest Float Get Vector By Ids", "[Float GetVectorByIds]") {
++    using Catch::Approx;
++
++    const int64_t nb = 1000;
++    const int64_t nq = 100;
++    const int64_t dim = 128;
++    const int64_t search_task_num = 20;
++
++    auto metric = GENERATE(as<std::string>{}, knowhere::metric::L2);
++    auto version = GenTestVersionList();
++
++    auto base_gen = [=]() {
++        knowhere::Json json;
++        json[knowhere::meta::DIM] = dim;
++        json[knowhere::meta::METRIC_TYPE] = metric;
++        json[knowhere::meta::RETRIEVE_FRIENDLY] = true;
++        json[knowhere::meta::TOPK] = 1;
++        return json;
++    };
++
++    auto kbest_gen = [base_gen]() {
++        knowhere::Json json = base_gen();
++        json[knowhere::indexparam::KBEST_R] = 50;
++        json[knowhere::indexparam::KBEST_L] = 100;
++        json[knowhere::indexparam::KBEST_A] = 60;
++        json[knowhere::indexparam::KBEST_INIT_BUILDER_TYPE] = "RNNDescent";
++        json[knowhere::indexparam::KBEST_CONSECUTIVE] = 20;
++        json[knowhere::indexparam::KBEST_LEVEL] = 2;
++        json[knowhere::indexparam::KBEST_EFS] = 200;
++        json[knowhere::indexparam::KBEST_NUM_SEARCH_THREAD] = 1;
++        return json;
++    };
++
++    SECTION("Test float index") {
++        using std::make_tuple;
++        auto [name, gen] = GENERATE_REF(table<std::string, std::function<knowhere::Json()>>({
++            make_tuple(knowhere::IndexEnum::INDEX_KBEST, kbest_gen),
++        }));
++        auto idx = knowhere::IndexFactory::Instance().Create<knowhere::fp32>(name, version).value();
++        auto cfg_json = gen().dump();
++        CAPTURE(name, cfg_json);
++        knowhere::Json json = knowhere::Json::parse(cfg_json);
++        auto train_ds = GenDataSet(nb, dim);
++        auto train_ds_copy = CopyDataSet(train_ds, nb);
++        auto ids_ds = GenIdsDataSet(nb, nq);
++        REQUIRE(idx.Type() == name);
++        auto res = idx.Build(*train_ds, json);
++        if (!idx.HasRawData(metric)) {
++            return;
++        }
++        REQUIRE(res == knowhere::Status::success);
++        knowhere::BinarySet bs;
++        idx.Serialize(bs);
++
++        auto idx_new = knowhere::IndexFactory::Instance().Create<knowhere::fp32>(name, version).value();
++        idx_new.Deserialize(bs);
++
++        auto retrieve_task = [&]() {
++            auto results = idx_new.GetVectorByIds(*ids_ds);
++            REQUIRE(results.has_value());
++            auto xb = (float*)train_ds_copy->GetTensor();
++            auto res_rows = results.value()->GetRows();
++            auto res_dim = results.value()->GetDim();
++            auto res_data = (float*)results.value()->GetTensor();
++            REQUIRE(res_rows == nq);
++            REQUIRE(res_dim == dim);
++            for (int i = 0; i < nq; ++i) {
++                const auto id = ids_ds->GetIds()[i];
++                for (int j = 0; j < dim; ++j) {
++                    REQUIRE(res_data[i * dim + j] == xb[id * dim + j]);
++                }
++            }
++        };
++
++        std::vector<std::future<void>> retrieve_task_list;
++        for (int i = 0; i < search_task_num; i++) {
++            retrieve_task_list.push_back(std::async(std::launch::async, [&] { return retrieve_task(); }));
++        }
++        for (auto& task : retrieve_task_list) {
++            task.wait();
++        }
++    }
++}
++
++TEST_CASE("Test KBest Mem Index With Float Vector", "[float metrics]") {
++    using Catch::Approx;
++
++    const int64_t nb = 1000, nq = 10;
++    const int64_t dim = 128;
++
++    auto metric = GENERATE(as<std::string>{}, knowhere::metric::L2);
++    auto topk = GENERATE(as<int64_t>{}, 5, 120);
++    auto version = GenTestVersionList();
++
++    auto base_gen = [=]() {
++        knowhere::Json json;
++        json[knowhere::meta::DIM] = dim;
++        json[knowhere::meta::METRIC_TYPE] = metric;
++        json[knowhere::meta::TOPK] = topk;
++        return json;
++    };
++
++    auto kbest_gen = [base_gen]() {
++        knowhere::Json json = base_gen();
++        json[knowhere::indexparam::KBEST_R] = 50;
++        json[knowhere::indexparam::KBEST_L] = 100;
++        json[knowhere::indexparam::KBEST_A] = 60;
++        json[knowhere::indexparam::KBEST_INIT_BUILDER_TYPE] = "RNNDescent";
++        json[knowhere::indexparam::KBEST_CONSECUTIVE] = 20;
++        json[knowhere::indexparam::KBEST_LEVEL] = 2;
++        json[knowhere::indexparam::KBEST_EFS] = 200;
++        json[knowhere::indexparam::KBEST_NUM_SEARCH_THREAD] = 1;
++        return json;
++    };
++
++    const auto train_ds = GenDataSet(nb, dim);
++    const auto query_ds = GenDataSet(nq, dim);
++
++    const knowhere::Json conf = {
++        {knowhere::meta::METRIC_TYPE, metric},
++        {knowhere::meta::TOPK, topk},
++    };
++    auto gt = knowhere::BruteForce::Search<knowhere::fp32>(train_ds, query_ds, conf, nullptr);
++
++    SECTION("Test Search") {
++        using std::make_tuple;
++        auto [name, gen] = GENERATE_REF(table<std::string, std::function<knowhere::Json()>>({
++            make_tuple(knowhere::IndexEnum::INDEX_KBEST, kbest_gen),
++        }));
++        auto idx = knowhere::IndexFactory::Instance().Create<knowhere::fp32>(name, version).value();
++        auto cfg_json = gen().dump();
++        CAPTURE(name, cfg_json);
++        knowhere::Json json = knowhere::Json::parse(cfg_json);
++        REQUIRE(idx.Type() == name);
++        REQUIRE(idx.Build(*train_ds, json) == knowhere::Status::success);
++        REQUIRE(idx.Count() == nb);
++
++        knowhere::BinarySet bs;
++        REQUIRE(idx.Serialize(bs) == knowhere::Status::success);
++        REQUIRE(idx.Deserialize(bs, json) == knowhere::Status::success);
++        REQUIRE(idx.Size() > 0);
++
++        auto results = idx.Search(*query_ds, json, nullptr);
++        REQUIRE(results.has_value());
++        float recall = GetKNNRecall(*gt.value(), *results.value());
++        REQUIRE(recall > kKnnRecallThreshold);
++    }
++
++    SECTION("Test Search with super large topk") {
++        using std::make_tuple;
++        auto kbest_gen_ = [base_gen]() {
++            knowhere::Json json = base_gen();
++            json[knowhere::indexparam::KBEST_R] = 50;
++            json[knowhere::indexparam::KBEST_L] = 100;
++            json[knowhere::indexparam::KBEST_A] = 60;
++            json[knowhere::indexparam::KBEST_INIT_BUILDER_TYPE] = "RNNDescent";
++            json[knowhere::indexparam::KBEST_CONSECUTIVE] = 20;
++            json[knowhere::indexparam::KBEST_LEVEL] = 2;
++            json[knowhere::indexparam::KBEST_EFS] = 650;
++            json[knowhere::indexparam::KBEST_NUM_SEARCH_THREAD] = 1;
++            json[knowhere::meta::TOPK] = GENERATE(as<int64_t>{}, 600);
++            return json;
++        };
++        auto [name, gen] = GENERATE_REF(table<std::string, std::function<knowhere::Json()>>({
++            make_tuple(knowhere::IndexEnum::INDEX_HNSW, kbest_gen_),
++        }));
++        auto idx = knowhere::IndexFactory::Instance().Create<knowhere::fp32>(name, version).value();
++        auto cfg_json = gen().dump();
++        CAPTURE(name, cfg_json);
++        knowhere::Json json = knowhere::Json::parse(cfg_json);
++        REQUIRE(idx.Type() == name);
++        REQUIRE(idx.Build(*train_ds, json) == knowhere::Status::success);
++
++        auto results = idx.Search(*query_ds, json, nullptr);
++        auto gt = knowhere::BruteForce::Search<knowhere::fp32>(train_ds, query_ds, json, nullptr);
++        float recall = GetKNNRecall(*gt.value(), *results.value());
++        REQUIRE(recall > kKnnRecallThreshold);
++    }
++}
+\ No newline at end of file
