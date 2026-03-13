@@ -153,4 +153,4 @@ milvus/
 
 ### License
 
-本项目的文档适用CC-BY 4.0许可证，具体请参见LICENSE文件。
+本项目的文档适用CC-BY 4.0许可证，具体请参见[LICENSE](https://gitcode.com/boostkit/milvus/tree/master/docs/LICENSE)文件。
