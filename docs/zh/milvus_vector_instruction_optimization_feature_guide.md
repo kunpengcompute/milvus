@@ -1,4 +1,4 @@
-# Milvus向量指令优化 特性指南<a name="ZH-CN_TOPIC_0000002552349479"></a>
+# Milvus向量指令优化 特性指南
 
 ## 特性介绍<a name="ZH-CN_TOPIC_0000002547526621"></a>
 
