@@ -1,4 +1,4 @@
-# Milvus KBest优化 版本说明书<a name="ZH-CN_TOPIC_0000002521016466"></a>
+# Milvus KBest优化 版本说明书
 
 
 

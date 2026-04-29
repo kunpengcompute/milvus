@@ -1,4 +1,4 @@
-# Milvus KScaNN优化 版本说明书<a name="ZH-CN_TOPIC_0000002521149494"></a>
+# Milvus KScaNN优化 版本说明书
 
 
 ### 版本配套说明<a name="ZH-CN_TOPIC_0000002516136620"></a>
