@@ -1,4 +1,4 @@
-# Milvus 版本说明书<a name="ZH-CN_TOPIC_0000002552895601"></a>
+# Milvus 版本说明书
 
 本文档整合了Milvus KBest优化、KScaNN优化和向量指令优化三个特性的版本说明。
 
