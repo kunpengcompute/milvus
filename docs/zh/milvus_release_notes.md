@@ -6,7 +6,7 @@
 
 | 文档版本 | 发布日期       | 修改说明                                                                                                                                 |
 | ---- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| 01   | 2025-06-30 |- 持续优化KBest算法，新增build\_index\_type、graph\_opt\_iter、reorder、adding\_pref、patience和level参数。<br>- 首次发布Milvus KScaNN优化特性。 |
+| 02   | 2025-06-30 |- 持续优化KBest算法，新增build\_index\_type、graph\_opt\_iter、reorder、adding\_pref、patience和level参数。<br>- 首次发布Milvus KScaNN优化特性。 |
 ### 版本配套说明
 #### 产品版本信息
 | 产品名称      | 产品版本     |
@@ -36,6 +36,7 @@
 持续优化KBest算法，新增build\_index\_type、graph\_opt\_iter、reorder、adding\_pref、patience和level参数。
 ##### Milvus KScaNN优化
 首次发布Milvus KScaNN优化特性。
+
 由于鲲鹏芯片的架构差异，ScaNN算法的软硬件协同优势在鲲鹏服务器上无法完全发挥，因此推出KScaNN优化特性，用于优化ScaNN类算法在鲲鹏服务器上的性能表现。
 #### 已解决的问题
 无
