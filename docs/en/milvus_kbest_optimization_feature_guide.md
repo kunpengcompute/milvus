@@ -1,10 +1,8 @@
 # Milvus KBest Optimization Feature Guide
 
+## Feature Description<a name="EN-US_TOPIC_0000002515965278"></a>
 
-
-### Feature Description<a name="EN-US_TOPIC_0000002515965278"></a>
-
-#### Introduction<a name="EN-US_TOPIC_0000002547525093"></a>
+### Introduction<a name="EN-US_TOPIC_0000002547525093"></a>
 
 Among all index algorithms supported by Milvus, the graph-based index algorithm is Hierarchical Navigable Small World (HNSW), which can perform quick query and achieve a high recall rate, but consumes a large amount of memory resources. To extend the graph-based index algorithm and enhance the query efficiency while ensuring a high recall rate, Kunpeng BoostKit proposes the Kunpeng Blazing-fast embedding similarity search thruster (KBest) algorithm.
 
@@ -12,8 +10,7 @@ KBest is an efficient, Kunpeng-developed graph search algorithm. It optimizes th
 
 This feature connects KBest to the open-source Milvus database through patch files to provide graph search functionality. For details, see [Installation and Usage Description](#installation-and-usage-description).
 
-
-#### Principles<a name="EN-US_TOPIC_0000002516125190"></a>
+### Principles<a name="EN-US_TOPIC_0000002516125190"></a>
 
 Milvus verifies the index algorithm used before each query, which is done in INDEX_NODE. Only when the verification is successful, QUERY_NODE invokes the interface in the corresponding index algorithm to perform query-related operations. The operations on the preceding two nodes are implemented in Go. [**Figure 1**](#milvus-query-architecture) shows the Milvus query architecture.
 
@@ -28,21 +25,15 @@ In conclusion, integrating the KBest algorithm into Milvus takes the following t
 1. Use Go to add the verification of the KBest algorithm to INDEX_NODE.
 2. Use C++ to implement the connection to KBest in the Knowhere component.
 
-
-
-### Verified Environments<a name="EN-US_TOPIC_0000002547525091"></a>
+## Verified Environments<a name="EN-US_TOPIC_0000002547525091"></a>
 
 This document provides guidance based on the Kunpeng server and openEuler OS. Before performing operations, ensure that your hardware and software meet the requirements.
-
-
 
 **Table 1** Hardware requirement<a id="hardware-requirement"></a>
 
 |Item|Specifications|
 |--|--|
 |CPU|Kunpeng 920 series|
-
-
 
 **Table 2** OS and software requirements<a id="os-and-software-requirements"></a>
 
@@ -55,7 +46,7 @@ This document provides guidance based on the Kunpeng server and openEuler OS. Be
 |Patch file|0001-milvus-add-kbest-kscann.patch|[Link](https://gitee.com/kunpeng_compute/milvus/releases/download/KunpengBoostKit25.1.RC1.kbest_kscann_index/0001-milvus-add-kbest-kscann.patch)|
 |Patch file|0001-knowhere-add-kbest-kscann.patch|[Link](https://gitee.com/kunpeng_compute/milvus/releases/download/KunpengBoostKit25.1.RC1.kbest_kscann_index/0001-knowhere-add-kbest-kscann.patch)|
 
-### Installation and Usage Description<a name="EN-US_TOPIC_0000002516125188" id="installation-and-usage-description"></a>
+## Installation and Usage Description<a name="EN-US_TOPIC_0000002516125188" id="installation-and-usage-description"></a>
 
 The KBest optimization feature for the Milvus database is provided in the form of patch files. Before using this optimization feature, install Kunpeng Recall Algorithm Library to ensure that the patch files can be compiled properly.
 
@@ -66,7 +57,7 @@ The KBest optimization feature for the Milvus database is provided in the form o
 
     For details about how to obtain KBest, see [**Table 2**](#os-and-software-requirements).
 
-    ```
+    ```shell
     cd ~
     unzip BoostKit-SRA_Recall-1.2.0.zip
     rpm -ivh boostkit-sra_recall-1.2.0-1.aarch64.rpm
@@ -82,7 +73,7 @@ The KBest optimization feature for the Milvus database is provided in the form o
 
 4. Apply the optimization feature patches. If no command output is displayed, the patches are successfully applied.
 
-    ```
+    ```shell
     cd ~/milvus
     git apply --whitespace=nowarn < ~/0001-milvus-add-kbest-kscann.patch
     cd ~/milvus/cmake_build/thirdparty/knowhere/knowhere-src/
@@ -94,7 +85,7 @@ The KBest optimization feature for the Milvus database is provided in the form o
     >![](public_sys-resources/icon-notice.gif) **NOTICE:**
     >The latest patches now support both the KBest and KScaNN algorithms. To integrate KScaNN, you need to first download its source code, introduce the relevant header files of related open-source code, and specify the relevant variables. For details, see [Milvus KScaNN Optimization Feature](https://www.hikunpeng.com/document/detail/en/kunpengdbs/appAccelFeatures/Milvuskscannop/kunpeng_kscann_tx_64_002.html). If you only want to enable the KBest algorithm, download the patches of an earlier version from the Gitee release page and delete the newly added parameters in the test tool.
 
-    ```
+    ```shell
     cd ~/milvus
     make milvus
     ```
@@ -105,8 +96,7 @@ The KBest optimization feature for the Milvus database is provided in the form o
 
     ![](figures/performance_comparison_kbest.png "Performance comparison before and after optimization")
 
-
-### Configuration Description<a name="EN-US_TOPIC_0000002515965280"></a>
+## Configuration Description<a name="EN-US_TOPIC_0000002515965280"></a>
 
 When creating a collection in Milvus, it is required to specify the vector dimension. The test tool loads the dimension when reading the dataset. However, dimensions supported by KBest are within a range, and the specified index types are case sensitive. [**Table 1**](#parameter-description) describes related configurations in the `config.yml` configuration file of ANN-Benchmarks.
 

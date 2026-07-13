@@ -1,7 +1,5 @@
 # Milvus KScaNN优化 特性指南
 
-
-
 ## 特性描述<a name="ZH-CN_TOPIC_0000002515964590"></a>
 
 ### 简介<a name="ZH-CN_TOPIC_0000002515964592"></a>
@@ -11,7 +9,6 @@ Milvus数据库支持ScaNN索引算法。ScaNN（Scalable Nearest Neighbors）�
 然而，由于鲲鹏芯片的架构差异，ScaNN算法的软硬件协同优势在鲲鹏服务器上无法完全发挥，因此推出KScaNN优化特性，用于优化ScaNN类算法在鲲鹏服务器上的性能表现。KScaNN（Kunpeng Scalable Nearest Neighbors）是一种基于倒排索引，并针对鲲鹏芯片架构进行了深度优化索引布局、算法流程和计算流程的向量检索算法，旨在充分利用芯片潜力。KScaNN接口基于ScaNN开源接口进行了扩展及修改，提供了与开源ScaNN相当的完整检索能力。
 
 此功能以patch文件的形式实现，将KScaNN算法集成到开源的Milvus数据库中，以实现对新的图索引算法的无缝支持。具体使用方法请参见[安装和使用说明](#安装和使用说明)。
-
 
 ### 原理描述<a name="ZH-CN_TOPIC_0000002547524413"></a>
 
@@ -28,22 +25,15 @@ Milvus数据库支持ScaNN索引算法。ScaNN（Scalable Nearest Neighbors）�
 1. 在INDEX\_NODE中添加对KScaNN算法的验证，此处用Go语言实现；
 2. 在Knowhere组件中，引入对KScaNN的对接实现，此处用C++语言实现；
 
-
-
 ## 已验证环境<a name="ZH-CN_TOPIC_0000002547604411"></a>
 
 本文基于鲲鹏服务器和openEuler操作系统提供指导，在正式操作前请确保软硬件均满足要求。
-
-
 
 **表 1** 硬件要求<a id="硬件要求"></a>
 
 |项目|规格|
 |--|--|
 |CPU|鲲鹏920系列处理器|
-
-
-
 
 **表 2** 操作系统和软件要求<a id="操作系统和软件要求"></a>
 
@@ -57,8 +47,6 @@ Milvus数据库支持ScaNN索引算法。ScaNN（Scalable Nearest Neighbors）�
 |补丁文件|0001-milvus-add-kbest-kscann.patch|[获取链接](https://gitee.com/kunpeng_compute/milvus/releases/download/KunpengBoostKit25.1.RC1.kbest_kscann_index/0001-milvus-add-kbest-kscann.patch)|
 |补丁文件|0001-knowhere-add-kbest-kscann.patch|[获取链接](https://gitee.com/kunpeng_compute/milvus/releases/download/KunpengBoostKit25.1.RC1.kbest_kscann_index/0001-knowhere-add-kbest-kscann.patch)|
 
-
-
 ## 安装和使用说明<a name="ZH-CN_TOPIC_0000002547524415"></a>
 
 针对Milvus数据库的KScaNN优化特性以patch文件的形式提供，在应用这个优化特性之前，需要先安装鲲鹏召回算法库，以确保patch文件能够顺利通过编译。
@@ -70,7 +58,7 @@ Milvus数据库支持ScaNN索引算法。ScaNN（Scalable Nearest Neighbors）�
 
     获取路径请参见[**表 2** 操作系统和软件要求](#操作系统和软件要求)的KScaNN获取路径，执行以下命令解压和安装。
 
-    ```
+    ```shell
     cd ~
     unzip BoostKit-SRA_Recall-1.2.0.zip
     rpm -ivh boostkit-sra_recall-1.2.0-1.aarch64.rpm
@@ -80,7 +68,7 @@ Milvus数据库支持ScaNN索引算法。ScaNN（Scalable Nearest Neighbors）�
 
     获取路径请参见[**表 2** 操作系统和软件要求](#操作系统和软件要求)的KSL获取路径，执行以下命令解压和安装。
 
-    ```
+    ```shell
     cd ~
     unzip BoostKit-ksl_2.4.0.zip
     rpm -ivh boostkit-ksl-2.4.0-1.aarch64.rpm
@@ -96,7 +84,7 @@ Milvus数据库支持ScaNN索引算法。ScaNN（Scalable Nearest Neighbors）�
 
 5. 执行以下命令，合入优化特性。没有输出则说明合入成功。若是编译Milvus时进行过“\~/milvus/internal/core/conanfile.py”文件内容的修改，可在合入patch之后再手动添加。
 
-    ```
+    ```shell
     cd ~/milvus
     git status
     git restore .
@@ -108,14 +96,14 @@ Milvus数据库支持ScaNN索引算法。ScaNN（Scalable Nearest Neighbors）�
 6. <a name="li13802146193717" id="li13802146193717"></a>由于召回算法库仅提供KScaNN的动态库文件，因此客户需要自行生成OpenScann的动态库文件libscann\_cc.so。以下给出简单操作步骤，更详细的使用说明，请参考《鲲鹏召回算法库开发指南》中的[SRA\_Recall使用说明](https://www.hikunpeng.com/document/detail/zh/boostsra/krecall/kscann/docs/zh/kscann/installation_guide.md#%E7%94%9F%E6%88%90%E5%AE%8C%E6%95%B4%E7%9A%84scann)。
     1. 安装依赖包。
 
-        ```
+        ```shell
         yum install python python3-pip python3-devel java-11-openjdk java-11-openjdk-devel rsync libomp hdf5 hdf5-devel gtest-devel libuuid-devel
         yum install gcc-toolset-12*
         ```
 
     2. 安装依赖软件bazel-5.3.0。
 
-        ```
+        ```shell
         cd ~
         wget https://github.com/bazelbuild/bazel/releases/download/5.3.0/bazel-5.3.0-dist.zip --no-check-certificate
         unzip bazel-5.3.0-dist.zip -d bazel-5.3.0
@@ -126,7 +114,7 @@ Milvus数据库支持ScaNN索引算法。ScaNN（Scalable Nearest Neighbors）�
 
     3. 下载编译OpenScann。
 
-        ```
+        ```shell
         export PATH=/opt/openEuler/gcc-toolset-12/root/usr/bin/:$PATH
         export LD_LIBRARY_PATH=/opt/openEuler/gcc-toolset-12/root/usr/lib64/:$LD_LIBRARY_PATH
         
@@ -140,14 +128,14 @@ Milvus数据库支持ScaNN索引算法。ScaNN（Scalable Nearest Neighbors）�
 
         - 鲲鹏920处理器
 
-            ```
+            ```shell
             conda activate milvus
             sh project.sh -ah
             ```
 
         - 鲲鹏920新型号处理器
 
-            ```
+            ```shell
             conda activate milvus
             sh project.sh -ag
             ```
@@ -157,7 +145,7 @@ Milvus数据库支持ScaNN索引算法。ScaNN（Scalable Nearest Neighbors）�
 
     4. 指定OpenScann的头文件路径和动态库文件路径。
 
-        ```
+        ```shell
         export OPEN_SCANN_LIB=~/OpenScann/kscann/scann/libscann_cc.so
         export OPEN_SCANN_INCLUDE=~/OpenScann/kscann/scann/
         ```
@@ -173,7 +161,7 @@ Milvus数据库支持ScaNN索引算法。ScaNN（Scalable Nearest Neighbors）�
 7. 安装Milvus-KScaNN依赖环境。
     1. 安装依赖软件eigen-3.3.7。
 
-        ```
+        ```shell
         git clone https://gitlab.com/libeigen/eigen.git
         cd eigen
         git checkout 33d0937c6bdf5ec999939fb17f2a553183d14a74
@@ -184,7 +172,7 @@ Milvus数据库支持ScaNN索引算法。ScaNN（Scalable Nearest Neighbors）�
 
     2. 激活Python虚拟环境，安装Python依赖。
 
-        ```
+        ```shell
         conda activate milvus
         pip install treelite==4.2.1
         pip install tl2cgen
@@ -193,7 +181,7 @@ Milvus数据库支持ScaNN索引算法。ScaNN（Scalable Nearest Neighbors）�
 
 8. 回到安装目录下，再次全量编译Milvus，以启用优化特性。
 
-    ```
+    ```shell
     cd ~/milvus
     make milvus
     ```
@@ -203,7 +191,6 @@ Milvus数据库支持ScaNN索引算法。ScaNN（Scalable Nearest Neighbors）�
     **图 1** 优化特性使能前后性能对比<a name="fig20889279511"></a><a id="优化特性使能前后性能对比"></a>
     
     ![](figures/优化特性使能前后性能对比-1.png "优化特性使能前后性能对比-1")
-
 
 ## 配置说明<a name="ZH-CN_TOPIC_0000002547604413"></a>
 
@@ -233,7 +220,3 @@ KScaNN不提供外部接口，是基于开源ScaNN算法进行了侵入式修改
 |adp_refined|查询时简单query所采用的子空间个数。预留参数，当前版本暂未使用，保留供后续版本扩展使用。|int，[0,nprobe]|[0]|典型值为0，但是搜推设置范围为[1,nprobe]，这里设置为[0,nprobe]。根据实际情况自行调整。|
 |num_thread|查询时的线程数。|int，大于等于1|[1]|无特殊情况设置为1。|
 |batch_size|并行自动分批时优先批次大小。|int，大于等于1|[1]|无特殊情况设置为1。|
-
-
-
-

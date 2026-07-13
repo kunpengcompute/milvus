@@ -1,6 +1,5 @@
 # Milvus KBest优化 特性指南
 
-
 ## 特性描述<a name="ZH-CN_TOPIC_0000002515965278"></a>
 
 ### 简介<a name="ZH-CN_TOPIC_0000002547525093"></a>
@@ -10,7 +9,6 @@
 KBest是鲲鹏自研的高效的图索引算法，通过量化、向量指令等方法优化了最近邻搜索的性能和精度，提供了对标开源Faiss HNSW算法的检索能力。
 
 本特性以patch文件的方式实现，将KBest算法接入开源的Milvus数据库中，无缝使用新的图索引算法。具体使用方法参考[安装和使用说明](#安装和使用说明)。
-
 
 ### 原理描述<a name="ZH-CN_TOPIC_0000002516125190"></a>
 
@@ -27,21 +25,15 @@ Milvus在每次进行查询前，都会对使用的索引算法进行验证，�
 1. 在INDEX\_NODE中添加对于KBest算法的验证，该部分用Go语言实现。
 2. 在Knowhere组件中，引入对于KBest的对接实现，该部分用C++语言实现。
 
-
-
 ## 已验证环境<a name="ZH-CN_TOPIC_0000002547525091"></a>
 
 本文基于鲲鹏服务器和openEuler操作系统提供指导，在正式操作前请确保软硬件均满足要求。
-
-
 
 **表 1** 硬件要求<a id="硬件要求"></a>
 
 |项目|规格|
 |--|--|
 |CPU|鲲鹏920系列处理器|
-
-
 
 **表 2** 操作系统和软件要求<a id="操作系统和软件要求"></a>
 
@@ -65,7 +57,7 @@ Milvus在每次进行查询前，都会对使用的索引算法进行验证，�
 
     获取路径请参见[**表 2** 操作系统和软件要求](#操作系统和软件要求)的KBest获取路径，执行以下命令解压和安装。
 
-    ```
+    ```shell
     cd ~
     unzip BoostKit-SRA_Recall-1.2.0.zip
     rpm -ivh boostkit-sra_recall-1.2.0-1.aarch64.rpm
@@ -81,7 +73,7 @@ Milvus在每次进行查询前，都会对使用的索引算法进行验证，�
 
 4. 执行以下命令，合入优化特性。没有输出则说明合入成功。
 
-    ```
+    ```shell
     cd ~/milvus
     git apply --whitespace=nowarn < ~/0001-milvus-add-kbest-kscann.patch
     cd ~/milvus/cmake_build/thirdparty/knowhere/knowhere-src/
@@ -93,7 +85,7 @@ Milvus在每次进行查询前，都会对使用的索引算法进行验证，�
     >![](public_sys-resources/icon-notice.gif) **须知：** 
     >由于最新patch文件进行了更新，里面包含了KBest和KScaNN两个算法的内容，引入KScaNN相关开源代码的头文件，需要提前下载好KScaNN相关源码，指定相关变量。具体操作参考《[Milvus KScaNN优化 特性指南](https://www.hikunpeng.com/document/detail/zh/boostdb/milvus/Milvuskscannop/docs/zh/milvus_kscann_optimization_feature_guide.md)》。若是仅想使能旧有KBest算法，可以在gitee发布页面下载旧版patch，同时在测试工具中，删除新增的参数。
 
-    ```
+    ```shell
     cd ~/milvus
     make milvus
     ```
@@ -103,7 +95,6 @@ Milvus在每次进行查询前，都会对使用的索引算法进行验证，�
     **图 1** 优化特性使能前后性能对比<a name="fig792311685612"></a><a id="优化特性使能前后性能对比"></a>
 
     ![](figures/优化特性使能前后性能对比.png "优化特性使能前后性能对比")
-
 
 ## 配置说明<a name="ZH-CN_TOPIC_0000002515965280"></a>
 
@@ -132,7 +123,3 @@ Milvus在创建Collection的时候需要指定向量的维度，测试工具会�
 |adding_pref|检索前超参候选集插入阈值|int，大于0|[52]|该参数用来限制搜索路径长度，提前停止检索。数值根据实际情况进行调整。|
 |patience|检索耐心值|int，大于0|[80]|该参数用来限制搜索路径长度，提前停止检索。数值根据实际情况进行调整。|
 |level|控制量化的等级。支持范围改变|int，[0,3]|[2]|level 1代表SQ8量化，level 2代表SQ4量化。对于IP数据集，一般使用1，L2数据集使用2。|
-
-
-
-
