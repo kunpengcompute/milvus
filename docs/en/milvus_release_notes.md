@@ -69,7 +69,7 @@ None
 |*Milvus KBest Optimization Feature Guide*|Describes the environment requirements and provides guidance on enabling the KBest algorithm in Milvus.|Open-source repository|
 |*Milvus KScaNN Optimization Feature Guide*|Describes the environment requirements and provides guidance on enabling the KScaNN algorithm in Milvus.|Open-source repository|
 
-### Obtaining Documentation<a name="EN-US_TOPIC_0000002544372643"></a>
+### Obtaining Documentation
 
 Visit the [open-source repository](https://gitcode.com/boostkit/milvus/tree/master/docs/en) to view or download required documents.
 
@@ -144,6 +144,6 @@ None
 |*Milvus KBest Optimization Feature Guide*|Describes the environment requirements and provides guidance on enabling the KBest algorithm in Milvus.|Open-source repository|
 |*Milvus Vector Instruction Optimization Feature Guide*|Describes the environment requirements and provides guidance on enabling the Milvus vector instruction optimization feature.|Open-source repository|
 
-### Obtaining Documentation<a name="EN-US_TOPIC_0000002544372643"></a>
+### Obtaining Documentation
 
 Visit the [open-source repository](https://gitcode.com/boostkit/milvus/tree/master/docs/en) to view or download required documents.

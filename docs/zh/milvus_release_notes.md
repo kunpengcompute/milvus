@@ -69,7 +69,7 @@
 |《Milvus KBest优化 特性指南》|本文档提供Milvus使能KBest算法的环境要求、特性使能指导。|开源仓|
 |《Milvus KScaNN优化 特性指南》|本文档提供Milvus使能KScaNN算法的环境要求、特性使能指导。|开源仓|
 
-### 获取文档的方法<a name="ZH-CN_TOPIC_0000002544372643"></a>
+### 获取文档的方法
 
 您可以通过访问[开源仓](https://gitcode.com/boostkit/milvus/tree/master/docs/zh)浏览和获取相关文档。
 
@@ -144,6 +144,6 @@ Milvus是业界领先的一种高性能、高扩展性的向量数据库，它�
 |《Milvus KBest优化 特性指南》|本文档提供Milvus使能KBest算法的环境要求、特性使能指导。|开源仓|
 |《Milvus向量指令优化 特性指南》|本文档提供Milvus向量指令优化特性的环境要求、特性使能指导。|开源仓|
 
-### 获取文档的方法<a name="ZH-CN_TOPIC_0000002544372643"></a>
+### 获取文档的方法
 
 您可以通过访问[开源仓](https://gitcode.com/boostkit/milvus/tree/master/docs/zh)浏览和获取相关文档。
