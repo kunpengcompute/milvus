@@ -24,11 +24,9 @@ BoostKit Milvus 是面向鲲鹏平台的 Milvus 向量数据库优化补丁仓�
 
 | 文档名称 | 内容说明 | 链接 |
 | --- | --- | --- |
-| milvus_vector_instruction_optimization_release_notes | 版本发布及配套信息 | [版本说明书](docs/zh/milvus_vector_instruction_optimization_release_notes.md) |
+| milvus_release_notes | 版本发布及配套信息 | [版本说明书](docs/zh/milvus_release_notes.md) |
 | milvus_vector_instruction_optimization_feature_guide | SVE+PF 优化原理、安装配置方法 | [特性指南](docs/zh/milvus_vector_instruction_optimization_feature_guide.md) |
-| milvus_kbest_optimization_release_note | KBest 版本说明及配套信息 | [版本说明书](docs/zh/milvus_kbest_optimization_release_note.md) |
 | milvus_kbest_optimization_feature_guide | KBest 算法原理、安装使用方法 | [特性指南](docs/zh/milvus_kbest_optimization_feature_guide.md) |
-| milvus_kscann_optimization_release_notes | KScaNN 版本说明及配套信息 | [版本说明书](docs/zh/milvus_kscann_optimization_release_notes.md) |
 | milvus_kscann_optimization_feature_guide | KScaNN 算法原理、安装使用方法 | [特性指南](docs/zh/milvus_kscann_optimization_feature_guide.md) |
 
 ### 目录结构

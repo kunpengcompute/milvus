@@ -24,11 +24,9 @@ The repository documents are as follows:
 
 | Document| Description| Link|
 | --- | --- | --- |
-| _milvus_vector_instruction_optimization_release_notes_| Version release and mapping information| [Release Notes](docs/en/milvus_vector_instruction_optimization_release_notes.md)|
+| milvus_release_notes_| Version release and mapping information| [Release Notes](docs/en/milvus_release_notes.md)|
 | _milvus_vector_instruction_optimization_feature_guide_| SVE+PF optimization principles and installation and configuration methods| [Feature Guide](docs/en/milvus_vector_instruction_optimization_feature_guide.md)|
-| _milvus_kbest_optimization_release_note_| KBest version release and mapping information| [Release Notes](docs/en/milvus_kbest_optimization_release_note.md)|
 | _milvus_kbest_optimization_feature_guide_| Principles, installation, and usage of the KBest algorithm| [Feature Guide](docs/en/milvus_kbest_optimization_feature_guide.md)|
-| _milvus_kscann_optimization_release_notes_| KScaNN version release and mapping information| [Release Notes](docs/en/milvus_kscann_optimization_release_notes.md)|
 | _milvus_kscann_optimization_feature_guide_| Principles, installation, and usage of the KScaNN algorithm| [Feature Guide](docs/en/milvus_kscann_optimization_feature_guide.md)|
 
 ### Directory Structure

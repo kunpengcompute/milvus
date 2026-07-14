@@ -15,16 +15,11 @@ SVE and PF together implement the vector instruction optimization feature of the
 
 This document provides guidance based on the Kunpeng server and openEuler OS. Before performing operations, ensure that your hardware and software meet the requirements.
 
-
-
 **Table 1** Hardware requirement<a id="hardware-requirement"></a>
 
 |Item|Specifications|
 |--|--|
 |CPU|New Kunpeng 920 processor model|
-
-
-
 
 **Table 2** OS and software requirements<a id="os-and-software-requirements"></a>
 
@@ -35,7 +30,6 @@ This document provides guidance based on the Kunpeng server and openEuler OS. Be
 |Milvus|2.4.5|[Link](https://gitee.com/milvus-io/milvus/)|
 |GCC|10.3.1|Delivered with openEuler 22.03 LTS SP3 and openEuler 22.03 LTS SP4.|
 |Patch file|0001-hnsw-scann-sve-pf.patch|[Link](https://gitee.com/kunpeng_compute/milvus/releases/download/KunpengBoostKit25.0.RC1.hnsw_scann_sve_pf/0001-hnsw-scann-sve-pf.patch)|
-
 
 ## Configuration Before Installation<a name="EN-US_TOPIC_0000002515966788" id="configuration-before-installation"></a>
 
@@ -51,13 +45,13 @@ The CPU supports SVE instruction optimization.
 
 Run the following command to check whether the CPU supports SVE instruction optimization:
 
-```
+```shell
 lscpu
 ```
 
 If the `Flags` line in the command output contains `sve`, the CPU supports SVE instruction optimization.
 
-```
+```txt
 Architecture:           aarch64
   CPU op-mode(s):       64-bit
   Byte Order:           Little Endian
@@ -88,7 +82,7 @@ Caches (sum of all):
 
 During GCC compilation, the `-march` compilation option specifies the Arm architecture version and the extended instruction set. In this patch, SVE is specified through the following compilation options:
 
-```
+```txt
 -march=armv8-a+sve -msve-vector-bits=256
 ```
 
@@ -112,14 +106,13 @@ In the Arm architecture, the Prefetch Memory (PRFM) instruction can be used to p
 
 The following describes the implementation of the prefetch instruction in C++.
 
-```
+```txt
 #define PLDL1KEEP_OFF(ptr, off) __asm__ volatile("prfm PLDL1KEEP, [%0, #(%1)]"::"r"(ptr), "i"(off):)
 ```
 
 In this feature, the prefetch instruction is added before the SVE load instruction to combine the two optimization methods.
 
 ![](figures/en-us_image_0000002547526625.png)
-
 
 ## Feature Installation and Usage<a name="EN-US_TOPIC_0000002547526623"></a>
 
@@ -139,14 +132,14 @@ The acceleration feature of the Milvus database is mainly applied to the HNSW an
 
 3. Go to the `./cmake_build/thirdparty/knowhere/knowhere-src` directory in the installation directory and apply the acceleration optimization feature patch. If no command output is displayed, the patch is successfully applied.
 
-    ```
+    ```shell
     cd cmake_build/thirdparty/knowhere/knowhere-src
     git apply --whitespace=nowarn < ~/0001-hnsw-scann-sve-pf.patch
     ```
 
 4. In the `./cmake_build/thirdparty/knowhere/knowhere-build` directory, compile the Knowhere component and use the optimization feature.
 
-    ```
+    ```shell
     cd ../knowhere-build
     make -sj
     cp -r ../../../lib/libknowhere.so ../../../../internal/core/output/lib64/
@@ -154,13 +147,13 @@ The acceleration feature of the Milvus database is mainly applied to the HNSW an
 
 5. Check whether the acceleration feature is enabled.
 
-    ```
+    ```shell
     strings ~/milvus/internal/core/output/lib64/libknowhere.so | grep sve
     ```
 
     If SVE-related information is returned, the acceleration feature is enabled successfully.
 
-    ```
+    ```txt
     GNU C++17 10.3.1 -march=armv8-a+sve -mlittle-endian -mabi=lp64 -g -O3 -O3 -std=gnu++17 -std=gnu++17 -std=gnu++17 -fopenmp -fPIC
     ```
 
@@ -168,7 +161,6 @@ The acceleration feature of the Milvus database is mainly applied to the HNSW an
 
     **Figure 1** Performance comparison before and after optimization<a name="fig78861413814"></a><a id="performance-comparison-before-and-after-optimization"></a><br>
     ![](figures/performance_comparison_vec_instr.png "Performance comparison before and after optimization")
-
 
 ## Acronyms and Abbreviations<a name="EN-US_TOPIC_0000002515966786"></a>
 

@@ -15,16 +15,11 @@ Milvus数据库向量指令优化特性通过SVE+PF优化，实现在16U64G规�
 
 本文基于鲲鹏服务器和openEuler操作系统提供指导，在正式操作前请确保软硬件均满足要求。
 
-
-
 **表 1** 硬件要求<a id="硬件要求"></a>
 
 |项目|规格|
 |--|--|
 |CPU|鲲鹏920新型号处理器|
-
-
-
 
 **表 2** 操作系统和软件要求<a id="操作系统和软件要求"></a>
 
@@ -35,7 +30,6 @@ Milvus数据库向量指令优化特性通过SVE+PF优化，实现在16U64G规�
 |Milvus|2.4.5|[获取链接](https://gitee.com/milvus-io/milvus/)|
 |GCC|10.3.1|openEuler 22.03 LTS SP3和openEuler 22.03 LTS SP4版本自带。|
 |patch文件|0001-hnsw-scann-sve-pf.patch|[获取链接](https://gitee.com/kunpeng_compute/milvus/releases/download/KunpengBoostKit25.0.RC1.hnsw_scann_sve_pf/0001-hnsw-scann-sve-pf.patch)|
-
 
 ## 安装前配置<a name="ZH-CN_TOPIC_0000002515966788" id="安装前配置"></a>
 
@@ -51,13 +45,13 @@ CPU支持SVE指令优化。
 
 通过以下命令查看CPU是否支持SVE指令优化。
 
-```
+```shell
 lscpu
 ```
 
 回显结果中Flags行包含SVE，表示CPU支持SVE指令优化。
 
-```
+```txt
 Architecture:           aarch64
   CPU op-mode(s):       64-bit
   Byte Order:           Little Endian
@@ -88,7 +82,7 @@ Caches (sum of all):
 
 GCC编译时，通过“-march”编译选项指定ARM架构版本以及扩展指令集。本特性patch中通过以下编译选项使用SVE：
 
-```
+```txt
 -march=armv8-a+sve -msve-vector-bits=256
 ```
 
@@ -112,14 +106,13 @@ GCC编译时，通过“-march”编译选项指定ARM架构版本以及扩展�
 
 以下是预取指令在C++中的实现。
 
-```
+```C++
 #define PLDL1KEEP_OFF(ptr, off) __asm__ volatile("prfm PLDL1KEEP, [%0, #(%1)]"::"r"(ptr), "i"(off):)
 ```
 
 在本特性中，预取指令会加入到SVE加载指令之前以结合使用两个优化特性。
 
 ![](figures/zh-cn_image_0000002547526625.png)
-
 
 ## 安装和使用特性<a name="ZH-CN_TOPIC_0000002547526623"></a>
 
@@ -139,14 +132,14 @@ GCC编译时，通过“-march”编译选项指定ARM架构版本以及扩展�
 
 3. 进入安装目录下的“./cmake\_build/thirdparty/knowhere/knowhere-src”目录，并执行以下命令，合入加速优化特性。没有输出则说明合入成功。
 
-    ```
+    ```shell
     cd cmake_build/thirdparty/knowhere/knowhere-src
     git apply --whitespace=nowarn < ~/0001-hnsw-scann-sve-pf.patch
     ```
 
 4. “./cmake\_build/thirdparty/knowhere/knowhere-build”目录下，执行以下命令编译Knowhere组件，使用优化特性。
 
-    ```
+    ```shell
     cd ../knowhere-build
     make -sj
     cp -r ../../../lib/libknowhere.so ../../../../internal/core/output/lib64/
@@ -154,13 +147,13 @@ GCC编译时，通过“-march”编译选项指定ARM架构版本以及扩展�
 
 5. 执行以下命令，确认是否使能加速特性。
 
-    ```
+    ```shell
     strings ~/milvus/internal/core/output/lib64/libknowhere.so | grep sve
     ```
 
     若返回SVE相关信息，表示加速特性使能成功。
 
-    ```
+    ```txt
     GNU C++17 10.3.1 -march=armv8-a+sve -mlittle-endian -mabi=lp64 -g -O3 -O3 -std=gnu++17 -std=gnu++17 -std=gnu++17 -fopenmp -fPIC
     ```
 
@@ -168,7 +161,6 @@ GCC编译时，通过“-march”编译选项指定ARM架构版本以及扩展�
 
     **图 1** 优化特性使能前后性能对比<a name="fig78861413814"></a><a id="优化特性使能前后性能对比"></a><br>
     ![](figures/优化特性使能前后性能对比-2.png "优化特性使能前后性能对比-2")
-
 
 ## 缩略语<a name="ZH-CN_TOPIC_0000002515966786"></a>
 
@@ -178,6 +170,3 @@ GCC编译时，通过“-march”编译选项指定ARM架构版本以及扩展�
 |NEON|Advanced SIMD (Single Instruction Multiple Data)|高级单指令多数据流|
 |PF|Prefetching|预取|
 |QPS|Queries Per Second|每秒查询率|
-
-
-

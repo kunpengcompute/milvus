@@ -1,10 +1,8 @@
 # Milvus KScaNN Optimization Feature Guide
 
+## Feature Description<a name="EN-US_TOPIC_0000002515964590"></a>
 
-
-### Feature Description<a name="EN-US_TOPIC_0000002515964590"></a>
-
-#### Introduction<a name="EN-US_TOPIC_0000002515964592"></a>
+### Introduction<a name="EN-US_TOPIC_0000002515964592"></a>
 
 The Milvus database supports Scalable Nearest Neighbors (ScaNN). ScaNN is an open-source algorithm library released by Google for efficient vector similarity retrieval. Based on the InVerted File Product Quantization (IVFPQ) principle, ScaNN uses 4-bit SIMD deep optimization on x86 and anisotropic quantization loss function optimization to achieve high retrieval performance. However, the ScaNN algorithm supported by Milvus is not from Google, but extended from IVFPQFastScan in Faiss. According to the performance curve provided by ANN-Benchmarks, the ScaNN algorithm outperforms Faiss-IVFPQFastScan and surpasses Milvus-HNSW in terms of precision. Interconnecting with Google's ScaNN algorithm can significantly improve the query performance.
 
@@ -12,8 +10,7 @@ However, due to the architectural differences of Kunpeng processors, the advanta
 
 This feature applies KScaNN as patch files to the open-source Milvus database to provide graph index functionality. For details, see [Installation and Usage Description](#installation-and-usage-description).
 
-
-#### Principles<a name="EN-US_TOPIC_0000002547524413"></a>
+### Principles<a name="EN-US_TOPIC_0000002547524413"></a>
 
 Before each query, Milvus verifies the index algorithm used. This process is performed in INDEX_NODE. Only when the verification is successful, QUERY_NODE invokes the interface in the corresponding index algorithm to perform query operations. The operations on the preceding two nodes are implemented in Go. [**Figure 1**](#milvus-query-architecture) shows the Milvus query architecture.
 
@@ -28,22 +25,15 @@ In conclusion, integrating the KScaNN algorithm into Milvus takes the following 
 1. Use Go to add the verification of the KScaNN algorithm to INDEX_NODE.
 2. Use C++ to implement the connection to KScaNN in the Knowhere component.
 
-
-
-### Verified Environments<a name="EN-US_TOPIC_0000002547604411"></a>
+## Verified Environments<a name="EN-US_TOPIC_0000002547604411"></a>
 
 This document provides guidance based on the Kunpeng server and openEuler OS. Before performing operations, ensure that your hardware and software meet the requirements.
-
-
 
 **Table 1** Hardware requirement<a id="hardware-requirement"></a>
 
 |Item|Specifications|
 |--|--|
 |CPU|Kunpeng 920 series|
-
-
-
 
 **Table 2** OS and software requirements<a id="os-and-software-requirements"></a>
 
@@ -52,14 +42,12 @@ This document provides guidance based on the Kunpeng server and openEuler OS. Be
 |OS|openEuler 22.03 LTS SP3|[Link](https://repo.huaweicloud.com/openeuler/openEuler-22.03-LTS-SP3/ISO/aarch64/openEuler-22.03-LTS-SP3-everything-aarch64-dvd.iso)|
 |OS|openEuler 22.03 LTS SP4|[Link](https://repo.huaweicloud.com/openeuler/openEuler-22.03-LTS-SP4/ISO/aarch64/openEuler-22.03-LTS-SP4-everything-aarch64-dvd.iso)|
 |Milvus|2.4.5|[Link](https://gitee.com/milvus-io/milvus/)|
-|KSL|BoostKit-ksl_2.4.0.zip|[Link](https://www.hikunpeng.com/en/developer/boostkit/library/system?subtab=AVX2KI&version=2.1.0)|
+|KSL|BoostKit-ksl_2.4.0.zip|Contact Huawei technical support.|
 |KScaNN|BoostKit-SRA_Recall-1.2.0.zip|Contact Huawei technical support.|
 |Patch file|0001-milvus-add-kbest-kscann.patch|[Link](https://gitee.com/kunpeng_compute/milvus/releases/download/KunpengBoostKit25.1.RC1.kbest_kscann_index/0001-milvus-add-kbest-kscann.patch)|
 |Patch file|0001-knowhere-add-kbest-kscann.patch|[Link](https://gitee.com/kunpeng_compute/milvus/releases/download/KunpengBoostKit25.1.RC1.kbest_kscann_index/0001-knowhere-add-kbest-kscann.patch)|
 
-
-
-### Installation and Usage Description<a name="ZH-CN_TOPIC_0000002547524415"></a>
+## Installation and Usage Description<a name="ZH-CN_TOPIC_0000002547524415"></a>
 
 The KScaNN optimization feature for the Milvus database is provided as patch files. Before using this feature, install Kunpeng Recall Algorithm Library to ensure that the patch files can be compiled.
 
@@ -70,7 +58,7 @@ The KScaNN optimization feature for the Milvus database is provided as patch fil
 
     For details about how to obtain KScaNN, see [**Table 2**](#os-and-software-requirements).
 
-    ```
+    ```shell
     cd ~
     unzip BoostKit-SRA_Recall-1.2.0.zip
     rpm -ivh boostkit-sra_recall-1.2.0-1.aarch64.rpm
@@ -80,7 +68,7 @@ The KScaNN optimization feature for the Milvus database is provided as patch fil
 
     For details about how to obtain KSL, see [**Table 2**](#os-and-software-requirements).
 
-    ```
+    ```shell
     cd ~
     unzip BoostKit-ksl_2.4.0.zip
     rpm -ivh boostkit-ksl-2.4.0-1.aarch64.rpm
@@ -96,7 +84,7 @@ The KScaNN optimization feature for the Milvus database is provided as patch fil
 
 5. Apply the optimization feature patches. If no command output is displayed, the patches are successfully applied. If the content of the `~/milvus/internal/core/conanfile.py` file is modified during Milvus compilation, you can manually add the content after applying the patches.
 
-    ```
+    ```shell
     cd ~/milvus
     git status
     git restore .
@@ -108,14 +96,14 @@ The KScaNN optimization feature for the Milvus database is provided as patch fil
 6. <a name="li13802146193717" id="li13802146193717"></a>Kunpeng Recall Algorithm Library provides only the dynamic library file of KScaNN. Therefore, you need to generate the dynamic library file `libscann_cc.so` of OpenScann. The procedure is as follows. For details, see [Using SRA_Recall](https://www.hikunpeng.com/document/detail/en/SRA/accelFeatures/recall/kunpengsra_recall_16_0007.html) in the *Kunpeng Recall Algorithm Library Developer Guide*.
     1. Install the dependency packages.
 
-        ```
+        ```shell
         yum install python python3-pip python3-devel java-11-openjdk java-11-openjdk-devel rsync libomp hdf5 hdf5-devel gtest-devel libuuid-devel
         yum install gcc-toolset-12*
         ```
 
     2. Install the dependency software Bazel 5.3.0.
 
-        ```
+        ```shell
         cd ~
         wget https://github.com/bazelbuild/bazel/releases/download/5.3.0/bazel-5.3.0-dist.zip --no-check-certificate
         unzip bazel-5.3.0-dist.zip -d bazel-5.3.0
@@ -126,7 +114,7 @@ The KScaNN optimization feature for the Milvus database is provided as patch fil
 
     3. Download and compile OpenScann.
 
-        ```
+        ```shell
         export PATH=/opt/openEuler/gcc-toolset-12/root/usr/bin/:$PATH
         export LD_LIBRARY_PATH=/opt/openEuler/gcc-toolset-12/root/usr/lib64/:$LD_LIBRARY_PATH
         
@@ -140,14 +128,14 @@ The KScaNN optimization feature for the Milvus database is provided as patch fil
 
         - Kunpeng 920
 
-            ```
+            ```shell
             conda activate milvus
             sh project.sh -ah
             ```
 
         - New Kunpeng 920 processor model
 
-            ```
+            ```shell
             conda activate milvus
             sh project.sh -ag
             ```
@@ -157,7 +145,7 @@ The KScaNN optimization feature for the Milvus database is provided as patch fil
 
     4. Specify the header file path and dynamic library file path of OpenScann.
 
-        ```
+        ```shell
         export OPEN_SCANN_LIB=~/OpenScann/kscann/scann/libscann_cc.so
         export OPEN_SCANN_INCLUDE=~/OpenScann/kscann/scann/
         ```
@@ -173,7 +161,7 @@ The KScaNN optimization feature for the Milvus database is provided as patch fil
 7. Install environment dependencies of Milvus-KScaNN.
     1. Install the dependency software Eigen 3.3.7.
 
-        ```
+        ```shell
         git clone https://gitlab.com/libeigen/eigen.git
         cd eigen
         git checkout 33d0937c6bdf5ec999939fb17f2a553183d14a74
@@ -184,7 +172,7 @@ The KScaNN optimization feature for the Milvus database is provided as patch fil
 
     2. Activate the Python virtual environment and install Python dependencies.
 
-        ```
+        ```shell
         conda activate milvus
         pip install treelite==4.2.1
         pip install tl2cgen
@@ -193,7 +181,7 @@ The KScaNN optimization feature for the Milvus database is provided as patch fil
 
 8. Go back to the installation directory and perform full compilation on Milvus again to enable the optimization feature.
 
-    ```
+    ```shell
     cd ~/milvus
     make milvus
     ```
@@ -204,8 +192,7 @@ The KScaNN optimization feature for the Milvus database is provided as patch fil
     
     ![](figures/performance_comparison_kscann.png "Performance comparison before and after optimization")
 
-
-### Configuration Description<a name="EN-US_TOPIC_0000002547604413"></a>
+## Configuration Description<a name="EN-US_TOPIC_0000002547604413"></a>
 
 When creating a Milvus collection, you need to specify the dimension of vectors. When the test tool reads the dataset, it loads the dimension. Note that the specified index type is case sensitive. [**Table 1**](#parameter-description) describes related configurations in the `config.yml` configuration file of ANN-Benchmarks.
 
