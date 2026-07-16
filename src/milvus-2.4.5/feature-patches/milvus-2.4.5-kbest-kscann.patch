@@ -1,0 +1,149 @@
+diff --git a/internal/core/conanfile.py b/internal/core/conanfile.py
+index 626233e..664d83c 100644
+--- a/internal/core/conanfile.py
++++ b/internal/core/conanfile.py
+@@ -41,7 +41,7 @@ class MilvusConan(ConanFile):
+         "google-cloud-cpp/2.5.0@milvus/dev",
+         "opentelemetry-cpp/1.8.1.1@milvus/dev",
+         "librdkafka/1.9.1",
+-        "abseil/20230125.3",
++        "abseil/20230802.1",
+     )
+     generators = ("cmake", "cmake_find_package")
+     default_options = {
+@@ -84,6 +84,8 @@ class MilvusConan(ConanFile):
+             # By default abseil use static link but can not be compatible with macos X86
+             self.options["abseil"].shared = True
+             self.options["arrow"].with_jemalloc = False
++        # 强制使用特定版本的thrift
++        self.requires("thrift/0.20.0", override=True)
+ 
+     def requirements(self):
+         if self.settings.os != "Macos":
+diff --git a/pkg/util/indexparamcheck/conf_adapter_mgr.go b/pkg/util/indexparamcheck/conf_adapter_mgr.go
+index 9fdc1a1..92f0f23 100644
+--- a/pkg/util/indexparamcheck/conf_adapter_mgr.go
++++ b/pkg/util/indexparamcheck/conf_adapter_mgr.go
+@@ -67,6 +67,9 @@ func (mgr *indexCheckerMgrImpl) registerIndexChecker() {
+ 	mgr.checkers[IndexTrie] = newTRIEChecker()
+ 	mgr.checkers["marisa-trie"] = newTRIEChecker()
+ 	mgr.checkers[AutoIndex] = newAUTOINDEXChecker()
++
++	mgr.checkers[IndexKBest] = newKBestChecker()
++	mgr.checkers[IndexKScaNN] = newKScaNNChecker()
+ }
+ 
+ func newIndexCheckerMgr() *indexCheckerMgrImpl {
+diff --git a/pkg/util/indexparamcheck/index_type.go b/pkg/util/indexparamcheck/index_type.go
+index 7b24202..0535204 100644
+--- a/pkg/util/indexparamcheck/index_type.go
++++ b/pkg/util/indexparamcheck/index_type.go
+@@ -34,6 +34,9 @@ const (
+ 	IndexSparseWand      IndexType = "SPARSE_WAND"
+ 	IndexINVERTED        IndexType = "INVERTED"
+ 
++	IndexKBest           IndexType = "KBEST"
++	IndexKScaNN          IndexType = "KSCANN"
++
+ 	IndexSTLSORT IndexType = "STL_SORT"
+ 	IndexTRIE    IndexType = "TRIE"
+ 	IndexTrie    IndexType = "Trie"
+@@ -56,7 +59,9 @@ func IsMmapSupported(indexType IndexType) bool {
+ 		indexType == IndexFaissBinIDMap ||
+ 		indexType == IndexFaissBinIvfFlat ||
+ 		indexType == IndexHNSW ||
+-		indexType == IndexScaNN
++		indexType == IndexScaNN ||
++		indexType == IndexKBest ||
++		indexType == IndexKScaNN
+ }
+ 
+ func IsDiskIndex(indexType IndexType) bool {
+diff --git a/pkg/util/indexparamcheck/kbest_checker.go b/pkg/util/indexparamcheck/kbest_checker.go
+new file mode 100644
+index 0000000..bdea69c
+--- /dev/null
++++ b/pkg/util/indexparamcheck/kbest_checker.go
+@@ -0,0 +1,37 @@
++package indexparamcheck
++
++import (
++	"github.com/milvus-io/milvus-proto/go-api/v2/schemapb"
++	"github.com/milvus-io/milvus/pkg/common"
++	"github.com/milvus-io/milvus/pkg/util/typeutil"
++)
++
++type kbestChecker struct {
++	baseChecker
++}
++
++func (c kbestChecker) StaticCheck(params map[string]string) error {
++	return nil
++}
++
++func (c kbestChecker) CheckTrain(params map[string]string) error {
++	return c.baseChecker.CheckTrain(params)
++}
++
++func (c kbestChecker) CheckValidDataType(dType schemapb.DataType) error {
++	return nil
++}
++
++func (c kbestChecker) SetDefaultMetricTypeIfNotExist(params map[string]string, dType schemapb.DataType) {
++	if typeutil.IsDenseFloatVectorType(dType) {
++		setDefaultIfNotExist(params, common.MetricTypeKey, FloatVectorDefaultMetricType)
++	} else if typeutil.IsSparseFloatVectorType(dType) {
++		setDefaultIfNotExist(params, common.MetricTypeKey, SparseFloatVectorDefaultMetricType)
++	} else if typeutil.IsBinaryVectorType(dType) {
++		setDefaultIfNotExist(params, common.MetricTypeKey, BinaryVectorDefaultMetricType)
++	}
++}
++
++func newKBestChecker() IndexChecker {
++	return &kbestChecker{}
++}
+\ No newline at end of file
+diff --git a/pkg/util/indexparamcheck/kscann_checker.go b/pkg/util/indexparamcheck/kscann_checker.go
+new file mode 100644
+index 0000000..3e1d842
+--- /dev/null
++++ b/pkg/util/indexparamcheck/kscann_checker.go
+@@ -0,0 +1,37 @@
++package indexparamcheck
++
++import (
++	"github.com/milvus-io/milvus-proto/go-api/v2/schemapb"
++	"github.com/milvus-io/milvus/pkg/common"
++	"github.com/milvus-io/milvus/pkg/util/typeutil"
++)
++
++type kscannChecker struct {
++	baseChecker
++}
++
++func (c kscannChecker) StaticCheck(params map[string]string) error {
++	return nil
++}
++
++func (c kscannChecker) CheckTrain(params map[string]string) error {
++	return c.baseChecker.CheckTrain(params)
++}
++
++func (c kscannChecker) CheckValidDataType(dType schemapb.DataType) error {
++	return nil
++}
++
++func (c kscannChecker) SetDefaultMetricTypeIfNotExist(params map[string]string, dType schemapb.DataType) {
++	if typeutil.IsDenseFloatVectorType(dType) {
++		setDefaultIfNotExist(params, common.MetricTypeKey, FloatVectorDefaultMetricType)
++	} else if typeutil.IsSparseFloatVectorType(dType) {
++		setDefaultIfNotExist(params, common.MetricTypeKey, SparseFloatVectorDefaultMetricType)
++	} else if typeutil.IsBinaryVectorType(dType) {
++		setDefaultIfNotExist(params, common.MetricTypeKey, BinaryVectorDefaultMetricType)
++	}
++}
++
++func newKScaNNChecker() IndexChecker {
++	return &kscannChecker{}
++}
+\ No newline at end of file
