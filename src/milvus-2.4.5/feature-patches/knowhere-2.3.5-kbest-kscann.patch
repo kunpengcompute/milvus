@@ -536,7 +536,7 @@ new file mode 100644
 index 0000000..0436b41
 --- /dev/null
 +++ b/src/index/kbest/kbest_config.h
-@@ -0,0 +1,138 @@
+@@ -0,0 +1,139 @@
 +#ifndef KBEST_CONFIG_H
 +#define KBEST_CONFIG_H
 +
@@ -652,6 +652,7 @@ index 0000000..0436b41
 +                    return Status::out_of_range_in_json;
 +                }
 +            }
++            [[fallthrough]];
 +            case PARAM_TYPE::SEARCH: {
 +                if (!efs.has_value()) {
 +                    efs = std::max(k.value(), kEfMinValues);
