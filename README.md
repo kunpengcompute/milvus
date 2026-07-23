@@ -32,26 +32,57 @@ BoostKit Milvus 是面向鲲鹏平台的 Milvus 向量数据库优化补丁仓�
 ### 目录结构
 
 ```text
-milvus/
+.
 ├── README.md                                                             # 仓库总览入口，说明分支与特性导航
-├── docs/zh/
-│   ├── milvus_vector_instruction_optimization_release_notes.md           # 向量指令优化版本发布说明
-│   ├── milvus_vector_instruction_optimization_feature_guide.md           # 向量指令优化原理与使能指导
-│   ├── milvus_kbest_optimization_release_note.md                         # KBest 优化版本发布说明
-│   ├── milvus_kbest_optimization_feature_guide.md                        # KBest 算法原理与使能指导
-│   ├── milvus_kscann_optimization_release_notes.md                       # KScaNN 优化版本发布说明
-│   ├── milvus_kscann_optimization_feature_guide.md                       # KScaNN 算法原理与使能指导
-│   └── figures/                                                          # 文档配图目录
-│       ├── Milvus整体查询架构.png                                         # Milvus 查询架构图
-│       ├── Milvus整体查询架构-0.png                                       # Milvus 查询架构图（KScaNN）
-│       ├── 优化特性使能前后性能对比.png                                    # KBest 性能对比图
-│       ├── 优化特性使能前后性能对比-1.png                                  # KScaNN 性能对比图
-│       └── 优化特性使能前后性能对比-2.png                                  # 向量指令优化性能对比图
-└── (branch) milvus-v2.4.5/
-    ├── README.md                                                         # milvus-v2.4.5 分支总览与补丁说明
-    ├── knowhere-2.3.5-hnsw-scann-pf-sve.patch                            # 向量指令优化补丁（SVE+PF）
-    ├── knowhere-2.3.5-kbest-kscann.patch                                 # KBest 和 KScaNN 算法补丁（Knowhere）
-    └── milvus-2.4.5-kbest-kscann.patch                                   # KBest 和 KScaNN 算法补丁（Milvus）
+├── README_en.md                                                          # 英文版仓库总览
+├── LICENSE                                                               # 代码许可证（Apache 2.0）
+├── docs/
+│   ├── LICENSE                                                           # 文档许可证（CC-BY 4.0）
+│   ├── en/
+│   │   ├── milvus_kbest_optimization_feature_guide.md                    # KBest 算法原理与使能指导（英文）
+│   │   ├── milvus_kscann_optimization_feature_guide.md                   # KScaNN 算法原理与使能指导（英文）
+│   │   ├── milvus_release_notes.md                                       # 版本发布说明（英文）
+│   │   ├── milvus_vector_instruction_optimization_feature_guide.md       # 向量指令优化原理与使能指导（英文）
+│   │   ├── figures/                                                      # 文档配图目录
+│   │   │   ├── en-us_image_0000002547526625.png
+│   │   │   ├── milvus_query_architecture_kbest.png                      # Milvus 查询架构图（KBest）
+│   │   │   ├── milvus_query_architecture_kscann.png                     # Milvus 查询架构图（KScaNN）
+│   │   │   ├── performance_comparison_kbest.png                         # KBest 性能对比图
+│   │   │   ├── performance_comparison_kscann.png                        # KScaNN 性能对比图
+│   │   │   └── performance_comparison_vec_instr.png                     # 向量指令优化性能对比图
+│   │   └── public_sys-resources/                                         # 文档图标
+│   │       ├── icon-caution.gif
+│   │       ├── icon-danger.gif
+│   │       ├── icon-note.gif
+│   │       ├── icon-notice.gif
+│   │       ├── icon-tip.gif
+│   │       └── icon-warning.gif
+│   └── zh/
+│       ├── milvus_kbest_optimization_feature_guide.md                    # KBest 算法原理与使能指导
+│       ├── milvus_kscann_optimization_feature_guide.md                   # KScaNN 算法原理与使能指导
+│       ├── milvus_release_notes.md                                       # 版本发布说明
+│       ├── milvus_vector_instruction_optimization_feature_guide.md       # 向量指令优化原理与使能指导
+│       ├── figures/                                                      # 文档配图目录
+│       │   ├── Milvus整体查询架构.png                                     # Milvus 查询架构图（KBest）
+│       │   ├── Milvus整体查询架构-0.png                                   # Milvus 查询架构图（KScaNN）
+│       │   ├── zh-cn_image_0000002547526625.png
+│       │   ├── 优化特性使能前后性能对比.png                                # KBest 性能对比图
+│       │   ├── 优化特性使能前后性能对比-1.png                              # KScaNN 性能对比图
+│       │   └── 优化特性使能前后性能对比-2.png                              # 向量指令优化性能对比图
+│       └── public_sys-resources/                                         # 文档图标
+│           ├── icon-caution.gif
+│           ├── icon-danger.gif
+│           ├── icon-note.gif
+│           ├── icon-notice.gif
+│           ├── icon-tip.gif
+│           └── icon-warning.gif
+└── src/
+    └── milvus-2.4.5/
+        ├── README.md                                                     # milvus-v2.4.5 分支总览与补丁说明
+        └── feature-patches/
+            ├── knowhere-2.3.5-hnsw-scann-pf-sve.patch                    # 向量指令优化补丁（SVE+PF）
+            ├── knowhere-2.3.5-kbest-kscann.patch                         # KBest 和 KScaNN 算法补丁（Knowhere）
+            └── milvus-2.4.5-kbest-kscann.patch                           # KBest 和 KScaNN 算法补丁（Milvus）
 ```
 
 ### 特性简介

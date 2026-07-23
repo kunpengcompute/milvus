@@ -24,34 +24,65 @@ The repository documents are as follows:
 
 | Document| Description| Link|
 | --- | --- | --- |
-| milvus_release_notes_| Version release and mapping information| [Release Notes](docs/en/milvus_release_notes.md)|
-| _milvus_vector_instruction_optimization_feature_guide_| SVE+PF optimization principles and installation and configuration methods| [Feature Guide](docs/en/milvus_vector_instruction_optimization_feature_guide.md)|
-| _milvus_kbest_optimization_feature_guide_| Principles, installation, and usage of the KBest algorithm| [Feature Guide](docs/en/milvus_kbest_optimization_feature_guide.md)|
-| _milvus_kscann_optimization_feature_guide_| Principles, installation, and usage of the KScaNN algorithm| [Feature Guide](docs/en/milvus_kscann_optimization_feature_guide.md)|
+| milvus_release_notes| Version release and mapping information| [Release Notes](docs/en/milvus_release_notes.md)|
+| milvus_vector_instruction_optimization_feature_guide| SVE+PF optimization principles and installation and configuration methods| [Feature Guide](docs/en/milvus_vector_instruction_optimization_feature_guide.md)|
+| milvus_kbest_optimization_feature_guide| Principles, installation, and usage of the KBest algorithm| [Feature Guide](docs/en/milvus_kbest_optimization_feature_guide.md)|
+| milvus_kscann_optimization_feature_guide| Principles, installation, and usage of the KScaNN algorithm| [Feature Guide](docs/en/milvus_kscann_optimization_feature_guide.md)|
 
 ### Directory Structure
 
 ```text
-milvus/
+.
 ├── README.md                                                             # Entry to the repository overview, providing branch details and feature navigation
-├── docs/en/
-│   ├── milvus_vector_instruction_optimization_release_notes.md           # Release notes of the vector instruction optimization feature
-│   ├── milvus_vector_instruction_optimization_feature_guide.md           # Principles and enabling guide of the vector instruction optimization feature
-│   ├── milvus_kbest_optimization_release_note.md                         # Release notes of the KBest optimization feature
-│   ├── milvus_kbest_optimization_feature_guide.md                        # Principles and enabling guide of the KBest algorithm
-│   ├── milvus_kscann_optimization_release_notes.md                       # Release notes of the KScaNN optimization feature
-│   ├── milvus_kscann_optimization_feature_guide.md                       # Principles and enabling guide of the KScaNN algorithm
-│   └── figures/                                                          # Directory for document figures
-│       ├── milvus_query_architecture_kbest.png                      # Milvus query architecture
-│       ├── milvus_query_architecture_kscann.png                     # Milvus query architecture (KScaNN)
-│       ├── performance_comparison_kbest.png                            # Performance comparison (KBest)
-│       ├── performance_comparison_kscann.png                           # Performance comparison (KScaNN)
-│       └── performance_comparison_vec_instr.png                         # Performance comparison (vector instruction optimization)
-└── (branch) milvus-v2.4.5/
-    ├── README.md                                                         # milvus-v2.4.5 branch overview and patch description
-    ├── knowhere-2.3.5-hnsw-scann-pf-sve.patch                            # Vector instruction optimization patch (SVE+PF)
-    ├── knowhere-2.3.5-kbest-kscann.patch                                 # KBest and KScaNN algorithm patch (Knowhere)
-    └── milvus-2.4.5-kbest-kscann.patch                                   # KBest and KScaNN algorithm patch (Milvus)
+├── README_en.md                                                          # English repository overview
+├── LICENSE                                                               # Code license (Apache 2.0)
+├── docs/
+│   ├── LICENSE                                                           # Documentation license (CC-BY 4.0)
+│   ├── en/
+│   │   ├── milvus_kbest_optimization_feature_guide.md                    # Principles and enabling guide of the KBest algorithm
+│   │   ├── milvus_kscann_optimization_feature_guide.md                   # Principles and enabling guide of the KScaNN algorithm
+│   │   ├── milvus_release_notes.md                                       # Version release and mapping information
+│   │   ├── milvus_vector_instruction_optimization_feature_guide.md       # Principles and enabling guide of the vector instruction optimization feature
+│   │   ├── figures/                                                      # Directory for document figures
+│   │   │   ├── en-us_image_0000002547526625.png
+│   │   │   ├── milvus_query_architecture_kbest.png                      # Milvus query architecture (KBest)
+│   │   │   ├── milvus_query_architecture_kscann.png                     # Milvus query architecture (KScaNN)
+│   │   │   ├── performance_comparison_kbest.png                         # Performance comparison (KBest)
+│   │   │   ├── performance_comparison_kscann.png                        # Performance comparison (KScaNN)
+│   │   │   └── performance_comparison_vec_instr.png                     # Performance comparison (vector instruction optimization)
+│   │   └── public_sys-resources/                                         # Document icons
+│   │       ├── icon-caution.gif
+│   │       ├── icon-danger.gif
+│   │       ├── icon-note.gif
+│   │       ├── icon-notice.gif
+│   │       ├── icon-tip.gif
+│   │       └── icon-warning.gif
+│   └── zh/
+│       ├── milvus_kbest_optimization_feature_guide.md                    # Principles and enabling guide of the KBest algorithm (Chinese)
+│       ├── milvus_kscann_optimization_feature_guide.md                   # Principles and enabling guide of the KScaNN algorithm (Chinese)
+│       ├── milvus_release_notes.md                                       # Version release and mapping information (Chinese)
+│       ├── milvus_vector_instruction_optimization_feature_guide.md       # Principles and enabling guide of the vector instruction optimization feature (Chinese)
+│       ├── figures/                                                      # Directory for document figures
+│       │   ├── Milvus整体查询架构.png                                     # Milvus query architecture (KBest)
+│       │   ├── Milvus整体查询架构-0.png                                   # Milvus query architecture (KScaNN)
+│       │   ├── zh-cn_image_0000002547526625.png
+│       │   ├── 优化特性使能前后性能对比.png                                # Performance comparison (KBest)
+│       │   ├── 优化特性使能前后性能对比-1.png                              # Performance comparison (KScaNN)
+│       │   └── 优化特性使能前后性能对比-2.png                              # Performance comparison (vector instruction optimization)
+│       └── public_sys-resources/                                         # Document icons
+│           ├── icon-caution.gif
+│           ├── icon-danger.gif
+│           ├── icon-note.gif
+│           ├── icon-notice.gif
+│           ├── icon-tip.gif
+│           └── icon-warning.gif
+└── src/
+    └── milvus-2.4.5/
+        ├── README.md                                                     # milvus-v2.4.5 branch overview and patch description
+        └── feature-patches/
+            ├── knowhere-2.3.5-hnsw-scann-pf-sve.patch                    # Vector instruction optimization patch (SVE+PF)
+            ├── knowhere-2.3.5-kbest-kscann.patch                         # KBest and KScaNN algorithm patch (Knowhere)
+            └── milvus-2.4.5-kbest-kscann.patch                           # KBest and KScaNN algorithm patch (Milvus)
 ```
 
 ### Feature Introduction

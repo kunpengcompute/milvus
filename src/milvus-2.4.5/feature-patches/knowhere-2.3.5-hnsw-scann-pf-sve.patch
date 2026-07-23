@@ -1,0 +1,111 @@
+diff --git a/cmake/libs/libfaiss.cmake b/cmake/libs/libfaiss.cmake
+index fda8bbc..c845730 100644
+--- a/cmake/libs/libfaiss.cmake
++++ b/cmake/libs/libfaiss.cmake
+@@ -48,7 +48,14 @@ endif()
+ if(__AARCH64)
+   set(UTILS_SRC src/simd/hook.cc src/simd/distances_ref.cc
+                 src/simd/distances_neon.cc)
+-  add_library(knowhere_utils STATIC ${UTILS_SRC})
++  add_library(utils_ref OBJECT ${UTILS_SRC})
++  include(CheckCXXCompilerFlag)
++  check_cxx_compiler_flag("-march=armv8-a+sve" COMPILER_SUPPORTS_SVE)
++  if(COMPILER_SUPPORTS_SVE)
++    target_compile_options(utils_ref PRIVATE -march=armv8-a+sve)
++    message("compiler supports sve!!")
++  endif()
++  add_library(knowhere_utils STATIC $<TARGET_OBJECTS:utils_ref>)
+   target_link_libraries(knowhere_utils PUBLIC glog::glog)
+ endif()
+ 
+diff --git a/src/simd/distances_neon.cc b/src/simd/distances_neon.cc
+index eb90c9a..f3f7126 100644
+--- a/src/simd/distances_neon.cc
++++ b/src/simd/distances_neon.cc
+@@ -14,6 +14,13 @@
+ 
+ #include <arm_neon.h>
+ #include <math.h>
++
++#if defined(__ARM_FEATURE_SVE)
++#include <arm_sve.h>
++#endif
++
++#define PLDL1KEEP_OFF(ptr, off) __asm__ volatile("prfm PLDL1KEEP, [%0, #(%1)]"::"r"(ptr), "i"(off):)
++
+ namespace faiss {
+ float
+ fvec_inner_product_neon(const float* x, const float* y, size_t d) {
+@@ -81,8 +88,29 @@ fvec_inner_product_neon(const float* x, const float* y, size_t d) {
+     return vaddvq_f32(sum_);
+ }
+ 
++#ifdef __ARM_FEATURE_SVE
+ float
+-fvec_L2sqr_neon(const float* x, const float* y, size_t d) {
++fvec_L2sqr_sve_pf(const float* x, const float* y, size_t d) {
++    svfloat32_t sum = svdup_f32(0.0f);
++    for (size_t i = 0; i < d; i += svcntw()) {
++        svbool_t valid = svwhilelt_b32(i, d);
++
++        PLDL1KEEP_OFF(x + i, 0x200);
++        PLDL1KEEP_OFF(y + i, 0x200);
++
++        svfloat32_t va = svld1_f32(valid, &x[i]);
++        svfloat32_t vb = svld1_f32(valid, &y[i]);
++
++        svfloat32_t diff = svsub_f32_m(valid, va, vb);
++
++        sum = svmla_f32_m(valid, sum, diff, diff);
++    }
++    return svaddv_f32(svptrue_b32(), sum);
++}
++#endif
++
++float
++fvec_L2sqr_neon_orig(const float* x, const float* y, size_t d) {
+     float32x4_t sum_ = {0.0f, 0.0f, 0.0f, 0.0f};
+ 
+     auto dim = d;
+@@ -160,6 +188,15 @@ fvec_L2sqr_neon(const float* x, const float* y, size_t d) {
+     return vaddvq_f32(sum_);
+ }
+ 
++float
++fvec_L2sqr_neon(const float* x, const float* y, size_t d) {
++#ifdef __ARM_FEATURE_SVE
++    return fvec_L2sqr_sve_pf(x, y, d);
++#else
++    return fvec_L2sqr_neon_orig(x, y, d);
++#endif
++}
++
+ float
+ fvec_L1_neon(const float* x, const float* y, size_t d) {
+     float32x4_t sum_ = {0.f};
+diff --git a/thirdparty/faiss/faiss/utils/simdlib_neon.h b/thirdparty/faiss/faiss/utils/simdlib_neon.h
+index 439a521..5272ca3 100644
+--- a/thirdparty/faiss/faiss/utils/simdlib_neon.h
++++ b/thirdparty/faiss/faiss/utils/simdlib_neon.h
+@@ -20,6 +20,8 @@
+ 
+ #include <faiss/impl/FaissAssert.h>
+ 
++#define PLDL1KEEP_OFF(ptr, off) __asm__ volatile("prfm PLDL1KEEP, [%0, #(%1)]"::"r"(ptr), "i"(off):)
++
+ namespace faiss {
+ 
+ namespace detail {
+@@ -783,8 +785,10 @@ struct simd32uint8 {
+     explicit simd32uint8(const T& x)
+             : data{detail::simdlib::reinterpret_u8(x.data)} {}
+ 
+-    explicit simd32uint8(const uint8_t* x)
+-            : data{vld1q_u8(x), vld1q_u8(x + 16)} {}
++    explicit simd32uint8(const uint8_t* x) {
++        PLDL1KEEP_OFF(x, 0x200);
++        loadu(x);
++    }
+ 
+     void clear() {
+         detail::simdlib::set1(data, static_cast<uint8_t>(0))
