@@ -42,7 +42,7 @@ This document provides guidance based on the Kunpeng server and openEuler OS. Be
 |OS|openEuler 22.03 LTS SP3|[Link](https://www.openeuler.org/en/download/archive/detail/?version=openEuler%252022.03%2520LTS%2520SP3)|
 |OS|openEuler 22.03 LTS SP4|[Link](https://www.openeuler.org/en/download/archive/detail/?version=openEuler%252022.03%2520LTS%2520SP4)|
 |Milvus|2.4.5|[Link](https://gitee.com/milvus-io/milvus/)|
-|KBest|BoostKit-SRA_Recall-1.2.0.zip|Contact Huawei technical support.|
+|KBest|BoostKit-SRA_Recall-1.2.0.zip|Please submit an ISSUE feedback.|
 |Patch file|0001-milvus-add-kbest-kscann.patch|[Link](https://gitee.com/kunpeng_compute/milvus/releases/download/KunpengBoostKit25.1.RC1.kbest_kscann_index/0001-milvus-add-kbest-kscann.patch)|
 |Patch file|0001-knowhere-add-kbest-kscann.patch|[Link](https://gitee.com/kunpeng_compute/milvus/releases/download/KunpengBoostKit25.1.RC1.kbest_kscann_index/0001-knowhere-add-kbest-kscann.patch)|
 

@@ -42,8 +42,8 @@ This document provides guidance based on the Kunpeng server and openEuler OS. Be
 |OS|openEuler 22.03 LTS SP3|[Link](https://repo.huaweicloud.com/openeuler/openEuler-22.03-LTS-SP3/ISO/aarch64/openEuler-22.03-LTS-SP3-everything-aarch64-dvd.iso)|
 |OS|openEuler 22.03 LTS SP4|[Link](https://repo.huaweicloud.com/openeuler/openEuler-22.03-LTS-SP4/ISO/aarch64/openEuler-22.03-LTS-SP4-everything-aarch64-dvd.iso)|
 |Milvus|2.4.5|[Link](https://gitee.com/milvus-io/milvus/)|
-|KSL|BoostKit-ksl_2.4.0.zip|Contact Huawei technical support.|
-|KScaNN|BoostKit-SRA_Recall-1.2.0.zip|Contact Huawei technical support.|
+|KSL|BoostKit-ksl_2.4.0.zip|Please submit an ISSUE feedback.|
+|KScaNN|BoostKit-SRA_Recall-1.2.0.zip|Please submit an ISSUE feedback.|
 |Patch file|0001-milvus-add-kbest-kscann.patch|[Link](https://gitee.com/kunpeng_compute/milvus/releases/download/KunpengBoostKit25.1.RC1.kbest_kscann_index/0001-milvus-add-kbest-kscann.patch)|
 |Patch file|0001-knowhere-add-kbest-kscann.patch|[Link](https://gitee.com/kunpeng_compute/milvus/releases/download/KunpengBoostKit25.1.RC1.kbest_kscann_index/0001-knowhere-add-kbest-kscann.patch)|
 
@@ -93,7 +93,7 @@ The KScaNN optimization feature for the Milvus database is provided as patch fil
     git apply --whitespace=nowarn < ~/0001-knowhere-add-kbest-kscann.patch
     ```
 
-6. <a name="li13802146193717" id="li13802146193717"></a>Kunpeng Recall Algorithm Library provides only the dynamic library file of KScaNN. Therefore, you need to generate the dynamic library file `libscann_cc.so` of OpenScann. The procedure is as follows. For details, see [Using SRA_Recall](https://www.hikunpeng.com/document/detail/en/SRA/accelFeatures/recall/kunpengsra_recall_16_0007.html) in the *Kunpeng Recall Algorithm Library Developer Guide*.
+6. <a name="li13802146193717" id="li13802146193717"></a>Kunpeng Recall Algorithm Library provides only the dynamic library file of KScaNN. Therefore, you need to generate the dynamic library file `libscann_cc.so` of OpenScann. The procedure is as follows. For details, see [Using SRA_Recall](https://www.hikunpeng.com/document/detail/en/boostsra/krecall/kscann/docs/en/kscann/installation_guide.md#generating-a-full-scann-libraty) in the *Kunpeng Recall Algorithm Library Developer Guide*.
     1. Install the dependency packages.
 
         ```shell
