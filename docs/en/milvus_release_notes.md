@@ -14,7 +14,7 @@
 
 | Product Name     | Version    |
 | --------- | -------- |
-| BoostDB | 25.1.RC1 |
+| BoostKit | 25.1.RC1 |
 
 #### Software Version Mapping
 
@@ -87,7 +87,7 @@ Visit the [open-source repository](https://gitcode.com/boostkit/milvus/tree/mast
 
 | Product Name     | Version    |
 | --------- | -------- |
-| BoostDB | 25.0.RC1 |
+| BoostKit | 25.0.RC1 |
 
 #### Software Version Mapping
 
