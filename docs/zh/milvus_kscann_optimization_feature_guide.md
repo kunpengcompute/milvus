@@ -51,7 +51,7 @@ Milvus数据库支持ScaNN索引算法。ScaNN（Scalable Nearest Neighbors）�
 
 ## 安装和使用说明<a name="ZH-CN_TOPIC_0000002547524415"></a>
 
-针对Milvus数据库的KScaNN优化特性以patch文件的形式提供，在应用这个优化特性之前，需要先安装鲲鹏召回算法库，以确保patch文件能够顺利通过编译。
+针对Milvus数据库的KScaNN优化特性以补丁文件的形式提供，在应用这个优化特性之前，需要先安装鲲鹏召回算法库，以确保patch文件能够顺利通过编译。
 
 >![](public_sys-resources/icon-note.gif) **说明：** 
 >开源的Milvus源码不包含索引相关组件Knowhere，因此在编译过程中需要单独拉取Knowhere的源码并进行集成。本次优化特性主要针对索引查询，相关的补丁文件将主要添加到Knowhere的源码中。因此，整个使用流程需要对Milvus进行两次编译：第一次编译时拉取Knowhere的源码，第二次编译在应用了补丁文件后进行，以启用优化特性。
