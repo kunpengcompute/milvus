@@ -1,5 +1,7 @@
 # Milvus KBest优化 特性指南
 
+本文档介绍Milvus KBest优化特性，以补丁文件方式将鲲鹏图检索算法KBest接入开源的Milvus数据库，在保证高召回率的前提下加速查询效率，适用于在鲲鹏处理器和openEuler操作系统上使用Milvus数据库的用户。
+
 ## 特性描述<a name="ZH-CN_TOPIC_0000002515965278"></a>
 
 ### 简介<a name="ZH-CN_TOPIC_0000002547525093"></a>
@@ -16,7 +18,7 @@ Milvus在每次进行查询前，都会对使用的索引算法进行验证，�
 
 **图 1** Milvus整体查询架构<a name="fig9581954683"></a><a id="Milvus整体查询架构"></a>
 
-![](figures/Milvus整体查询架构.png "Milvus整体查询架构")
+![Milvus整体查询架构图：查询前由INDEX_NODE校验索引算法，通过后QUERY_NODE经Knowhere调用索引接口](figures/Milvus整体查询架构.png)
 
 索引算法的关键组件叫做Knowhere，主要用C++实现，会链接核心的索引算法（如Faiss或HNSW等）和CGO接口，进行调用。
 
@@ -39,16 +41,16 @@ Milvus在每次进行查询前，都会对使用的索引算法进行验证，�
 
 |项目|版本|获取地址|
 |--|--|--|
-|操作系统|openEuler 22.03 LTS SP3|[获取链接](https://www.openeuler.org/zh/download/archive/detail/?version=openEuler%252022.03%2520LTS%2520SP3)|
-|操作系统|openEuler 22.03 LTS SP4|[获取链接](https://www.openeuler.org/zh/download/archive/detail/?version=openEuler%252022.03%2520LTS%2520SP4)|
-|Milvus|2.4.5|[获取链接](https://gitee.com/milvus-io/milvus/)|
-|KBest|BoostKit-SRA_Recall-1.2.0.zip|单击[获取链接](https://www.hikunpeng.com/boostkit/sra#KBest)，进入“搜推广加速套件>鲲鹏召回算法库>KBest”，单击“软件包下载”，根据提示下载“BoostKit-SRA_Recall-1.2.0.zip”。本特性仅使用了鲲鹏召回算法库“BoostKit-SRA_Recall-1.2.0.zip”中的KBest算法进行优化。|
-|补丁文件|0001-milvus-add-kbest-kscann.patch|[获取链接](https://gitee.com/kunpeng_compute/milvus/releases/download/KunpengBoostKit25.1.RC1.kbest_kscann_index/0001-milvus-add-kbest-kscann.patch)|
-|补丁文件|0001-knowhere-add-kbest-kscann.patch|[获取链接](https://gitee.com/kunpeng_compute/milvus/releases/download/KunpengBoostKit25.1.RC1.kbest_kscann_index/0001-knowhere-add-kbest-kscann.patch)|
+|操作系统|openEuler 22.03 LTS SP3|[openEuler 22.03 LTS SP3下载地址](https://www.openeuler.org/zh/download/archive/detail/?version=openEuler%252022.03%2520LTS%2520SP3)|
+|操作系统|openEuler 22.03 LTS SP4|[openEuler 22.03 LTS SP4下载地址](https://www.openeuler.org/zh/download/archive/detail/?version=openEuler%252022.03%2520LTS%2520SP4)|
+|Milvus|2.4.5|[Milvus代码仓库](https://gitee.com/milvus-io/milvus/)|
+|KBest|BoostKit-SRA_Recall-1.2.0.zip|单击[KBest软件包下载页面](https://www.hikunpeng.com/boostkit/sra#KBest)，进入“搜推广加速套件>鲲鹏召回算法库>KBest”，单击“软件包下载”，根据提示下载“BoostKit-SRA_Recall-1.2.0.zip”。本特性仅使用了鲲鹏召回算法库“BoostKit-SRA_Recall-1.2.0.zip”中的KBest算法进行优化。|
+|补丁文件|0001-milvus-add-kbest-kscann.patch|[milvus补丁文件下载地址](https://gitee.com/kunpeng_compute/milvus/releases/download/KunpengBoostKit25.1.RC1.kbest_kscann_index/0001-milvus-add-kbest-kscann.patch)|
+|补丁文件|0001-knowhere-add-kbest-kscann.patch|[knowhere补丁文件下载地址](https://gitee.com/kunpeng_compute/milvus/releases/download/KunpengBoostKit25.1.RC1.kbest_kscann_index/0001-knowhere-add-kbest-kscann.patch)|
 
 ## 安装和使用说明<a name="ZH-CN_TOPIC_0000002516125188" id="安装和使用说明"></a>
 
-针对Milvus数据库的KBest优化特性以patch文件形式提供，在应用这个优化特性之前，还需要先安装鲲鹏召回算法库，保证patch文件正常通过编译。
+针对Milvus数据库的KBest优化特性以补丁文件形式提供，在应用这个优化特性之前，还需要先安装鲲鹏召回算法库，保证patch文件正常通过编译。
 
 >![](public_sys-resources/icon-note.gif) **说明：** 
 >开源Milvus源码不包括索引相关的组件Knowhere，需要在编译过程中拉取Knowhere的源码并进行对接。本次优化特性主要应用于索引查询，补丁文件主要会添加到Knowhere源码中。所以整体使用过程需要编译Milvus两次，一次编译拉取Knowhere的源码，在打入patch文件后进行第二次编译，用来使能优化特性。
@@ -90,15 +92,15 @@ Milvus在每次进行查询前，都会对使用的索引算法进行验证，�
     make milvus
     ```
 
-6. 通过ann-benchmarks gist数据集进行测试，可以得到使用加速优化特性前后的性能提升效果，如[**图 1** 优化特性使能前后性能对比](#优化特性使能前后性能对比)所示。即采用鲲鹏召回算法KBest，对比hnsw算法，将Milvus查询性能（QPS）提升30%以上。详细测试步骤请参见《[Milvus ann-benchmarks 测试指导](https://www.hikunpeng.com/document/detail/zh/kunpengdbs/testguide/tstg/kunpeng_ann_marks_001.html)》。
+6. 通过ann-benchmarks gist数据集进行测试，可以得到使用加速优化特性前后的性能提升效果，如[**图 2** 优化特性使能前后性能对比](#优化特性使能前后性能对比)所示。即采用鲲鹏召回算法KBest，对比hnsw算法，将Milvus查询性能（QPS）提升30%以上。详细测试步骤请参见《[Milvus ann-benchmarks 测试指导](https://www.hikunpeng.com/document/detail/zh/kunpengdbs/testguide/tstg/kunpeng_ann_marks_001.html)》。
 
     **图 1** 优化特性使能前后性能对比<a name="fig792311685612"></a><a id="优化特性使能前后性能对比"></a>
 
-    ![](figures/优化特性使能前后性能对比.png "优化特性使能前后性能对比")
+    ![优化特性使能前后查询性能对比图，使能KBest后QPS明显高于hnsw算法，性能明显提升](figures/优化特性使能前后性能对比.png)
 
 ## 配置说明<a name="ZH-CN_TOPIC_0000002515965280"></a>
 
-Milvus在创建Collection的时候需要指定向量的维度，测试工具会在读取数据集的时候将维度加载进来，但是KBest支持的维度是有范围的，而且指定的索引类型也是严格规定必须区分大小写。现将测试工具ann\_benchmarks的config.yml配置文件所有涉及的配置说明如[**表 1** 参数配置说明](#参数配置说明)所示。
+Milvus在创建Collection的时候需要指定向量的维度，测试工具会在读取数据集的时候将维度加载进来，但是KBest支持的维度是有范围的，而且指定的索引类型也是严格规定必须区分大小写。现将测试工具ann\_benchmarks的config.yml配置文件所有涉及的配置说明如[**表 3** 参数配置说明](#参数配置说明)所示。
 
 >![](public_sys-resources/icon-notice.gif) **须知：** 
 >建议用户在Milvus启动创建索引操作之后检查日志信息，若Milvus一直在日志里循环打印报错信息，表示配置参数错误，请根据报错信息进行问题定位，保证查询的正确进行。
@@ -108,7 +110,7 @@ Milvus在创建Collection的时候需要指定向量的维度，测试工具会�
 |参数名称|参数描述|类型范围|建议值|配置原则|
 |--|--|--|--|--|
 |index_type|测试时指定的索引类型|std::string，“KBEST”|KBEST|无。|
-|metric_type|测试时指定的距离度量方式|const char*，“L2”：欧氏距离“IP”：内积|无|数据集自带，无需手动配置。|
+|metric_type|测试时指定的距离度量方式|const char*，“L2”：欧氏距离；“IP”：内积|无|数据集自带，无需手动配置。|
 |dim|特征维度|int，[1,2999]|无|数据集自带，无需手动配置。|
 |R|邻居节点数|int，[11,499]|[50]|该参数影响图构建耗时和最终索引质量，一般推荐使用50，过大可能会导致构建耗时过长以及搜索性能下降，过小则会影响检索精度。|
 |L|构图时的候选节点列表|int，[11,1999]|[100]|该参数影响图构建耗时和最终索引质量，一般推荐使用100，过大可能会导致构建耗时过长。|
@@ -123,3 +125,9 @@ Milvus在创建Collection的时候需要指定向量的维度，测试工具会�
 |adding_pref|检索前超参候选集插入阈值|int，大于0|[52]|该参数用来限制搜索路径长度，提前停止检索。数值根据实际情况进行调整。|
 |patience|检索耐心值|int，大于0|[80]|该参数用来限制搜索路径长度，提前停止检索。数值根据实际情况进行调整。|
 |level|控制量化的等级。支持范围改变|int，[0,3]|[2]|level 1代表SQ8量化，level 2代表SQ4量化。对于IP数据集，一般使用1，L2数据集使用2。|
+
+## 修订记录
+
+|文档版本 | 发布日期 | 修改说明 |
+| --------| -------- | -------- |
+|01| 2025-06-30 | 第一次正式发布。 |
