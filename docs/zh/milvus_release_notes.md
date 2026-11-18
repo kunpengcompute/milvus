@@ -6,7 +6,7 @@
 
 | 文档版本 | 发布日期       | 修改说明                                                                                                                                 |
 | ---- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| 02   | 2025-06-30 |- 持续优化KBest算法，新增build\_index\_type、graph\_opt\_iter、reorder、adding\_pref、patience和level参数。<br>- 首次发布Milvus KScaNN优化特性。 |
+| 01   | 2025-06-30 |- 持续优化KBest算法，新增build\_index\_type、graph\_opt\_iter、reorder、adding\_pref、patience和level参数。<br>- 首次发布Milvus KScaNN优化特性。 |
 
 ### 版本配套说明
 

@@ -82,7 +82,7 @@ Caches (sum of all):
 
 GCC编译时，通过“-march”编译选项指定ARM架构版本以及扩展指令集。本特性patch中通过以下编译选项使用SVE：
 
-```output
+```txt
 -march=armv8-a+sve -msve-vector-bits=256
 ```
 

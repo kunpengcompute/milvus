@@ -94,7 +94,7 @@ Milvus在每次进行查询前，都会对使用的索引算法进行验证，�
 
 6. 通过ann-benchmarks gist数据集进行测试，可以得到使用加速优化特性前后的性能提升效果，如[**图 2** 优化特性使能前后性能对比](#优化特性使能前后性能对比)所示。即采用鲲鹏召回算法KBest，对比hnsw算法，将Milvus查询性能（QPS）提升30%以上。详细测试步骤请参见《[Milvus ann-benchmarks 测试指导](https://www.hikunpeng.com/document/detail/zh/kunpengdbs/testguide/tstg/kunpeng_ann_marks_001.html)》。
 
-    **图 1** 优化特性使能前后性能对比<a name="fig792311685612"></a><a id="优化特性使能前后性能对比"></a>
+    **图 2** 优化特性使能前后性能对比<a name="fig792311685612"></a><a id="优化特性使能前后性能对比"></a>
 
     ![优化特性使能前后查询性能对比图，使能KBest后QPS明显高于hnsw算法，性能明显提升](figures/优化特性使能前后性能对比.png)
 
@@ -105,7 +105,7 @@ Milvus在创建Collection的时候需要指定向量的维度，测试工具会�
 >![](public_sys-resources/icon-notice.gif) **须知：** 
 >建议用户在Milvus启动创建索引操作之后检查日志信息，若Milvus一直在日志里循环打印报错信息，表示配置参数错误，请根据报错信息进行问题定位，保证查询的正确进行。
 
-**表 1** 参数配置说明<a id="参数配置说明"></a>
+**表 3** 参数配置说明<a id="参数配置说明"></a>
 
 |参数名称|参数描述|类型范围|建议值|配置原则|
 |--|--|--|--|--|
