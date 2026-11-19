@@ -1,8 +1,8 @@
 # Milvus向量指令优化 特性指南
 
-## 特性介绍<a name="ZH-CN_TOPIC_0000002547526621"></a>
+本文档介绍向量指令优化特性，以补丁文件方式将SVE+PF优化接入开源的Milvus数据库，在保证高召回率的前提下加速查询效率，适用于在鲲鹏处理器和openEuler操作系统上使用Milvus数据库的用户。
 
-本文主要介绍Milvus数据库向量指令优化特性的优化原理和安装使用方法。
+## 特性介绍<a name="ZH-CN_TOPIC_0000002547526621"></a>
 
 Milvus是业界领先的一种高性能、高扩展性的向量数据库，它提供强大的数据建模功能。在Milvus上使用HNSW算法或者ScaNN算法对数据集GIST进行测试时发现，两个向量之间求相似度的热点函数占CPU近90%的比重，如果能够对相应热点函数进行优化，可以取得明显的加速效果。而这种存在大量循环和简单数学运算的操作，使用SVE指令和PF进行加速是非常好用的手段。
 
@@ -13,7 +13,7 @@ Milvus数据库向量指令优化特性通过SVE+PF优化，实现在16U64G规�
 
 ## 环境要求<a name="ZH-CN_TOPIC_0000002516126710"></a>
 
-本文基于鲲鹏服务器和openEuler操作系统提供指导，在正式操作前请确保软硬件均满足要求。
+本文基于鲲鹏处理器和openEuler操作系统提供指导，在正式操作前请确保软硬件均满足要求。
 
 **表 1** 硬件要求<a id="硬件要求"></a>
 
@@ -25,15 +25,15 @@ Milvus数据库向量指令优化特性通过SVE+PF优化，实现在16U64G规�
 
 |项目|版本|获取地址|
 |--|--|--|
-|操作系统|openEuler 22.03 LTS SP3|[获取链接](https://www.openeuler.org/zh/download/archive/detail/?version=openEuler%252022.03%2520LTS%2520SP3)|
-|操作系统|openEuler 22.03 LTS SP4|[获取链接](https://www.openeuler.org/zh/download/archive/detail/?version=openEuler%252022.03%2520LTS%2520SP4)|
-|Milvus|2.4.5|[获取链接](https://gitee.com/milvus-io/milvus/)|
+|操作系统|openEuler 22.03 LTS SP3|[openEuler 22.03 LTS SP3下载页面](https://www.openeuler.org/zh/download/archive/detail/?version=openEuler%252022.03%2520LTS%2520SP3)|
+|操作系统|openEuler 22.03 LTS SP4|[openEuler 22.03 LTS SP4下载页面](https://www.openeuler.org/zh/download/archive/detail/?version=openEuler%252022.03%2520LTS%2520SP4)|
+|Milvus|2.4.5|[Milvus代码仓库](https://gitee.com/milvus-io/milvus/)|
 |GCC|10.3.1|openEuler 22.03 LTS SP3和openEuler 22.03 LTS SP4版本自带。|
-|patch文件|0001-hnsw-scann-sve-pf.patch|[获取链接](https://gitee.com/kunpeng_compute/milvus/releases/download/KunpengBoostKit25.0.RC1.hnsw_scann_sve_pf/0001-hnsw-scann-sve-pf.patch)|
+|patch文件|0001-hnsw-scann-sve-pf.patch|[0001-hnsw-scann-sve-pf.patch下载地址](https://gitee.com/kunpeng_compute/milvus/releases/download/KunpengBoostKit25.0.RC1.hnsw_scann_sve_pf/0001-hnsw-scann-sve-pf.patch)|
 
 ## 安装前配置<a name="ZH-CN_TOPIC_0000002515966788" id="安装前配置"></a>
 
-以上描述的优化特性，都已经写入到patch文件中，对源码应用patch文件之后，就可以使能该特性。
+以上描述的优化特性，都已经写入到补丁文件中，对源码应用补丁文件之后，就可以使能该特性。
 
 **利用SVE加速向量运算<a name="section69055571702"></a>**
 
@@ -51,7 +51,7 @@ lscpu
 
 回显结果中Flags行包含SVE，表示CPU支持SVE指令优化。
 
-```txt
+```output
 Architecture:           aarch64
   CPU op-mode(s):       64-bit
   Byte Order:           Little Endian
@@ -112,7 +112,7 @@ GCC编译时，通过“-march”编译选项指定ARM架构版本以及扩展�
 
 在本特性中，预取指令会加入到SVE加载指令之前以结合使用两个优化特性。
 
-![](figures/zh-cn_image_0000002547526625.png)
+![预取指令与SVE加载指令结合使用的实现示意，预取指令插入在SVE加载指令之前](figures/zh-cn_image_0000002547526625.png)
 
 ## 安装和使用特性<a name="ZH-CN_TOPIC_0000002547526623"></a>
 
@@ -153,20 +153,26 @@ GCC编译时，通过“-march”编译选项指定ARM架构版本以及扩展�
 
     若返回SVE相关信息，表示加速特性使能成功。
 
-    ```txt
+    ```output
     GNU C++17 10.3.1 -march=armv8-a+sve -mlittle-endian -mabi=lp64 -g -O3 -O3 -std=gnu++17 -std=gnu++17 -std=gnu++17 -fopenmp -fPIC
     ```
 
 6. 通过ann-benchmarks gist数据集进行测试，可以得到使用加速优化特性前后的性能提升效果，如[**图 1** 优化特性使能前后性能对比](#优化特性使能前后性能对比)所示。即使能Milvus向量指令优化特性后，可以将Milvus查询性能（QPS）提升20%。详细测试步骤请参见《[Milvus数据库ann-benchmarks 测试指导](https://www.hikunpeng.com/document/detail/zh/kunpengdbs/testguide/tstg/kunpeng_ann_marks_001.html)》。
 
     **图 1** 优化特性使能前后性能对比<a name="fig78861413814"></a><a id="优化特性使能前后性能对比"></a><br>
-    ![](figures/优化特性使能前后性能对比-2.png "优化特性使能前后性能对比-2")
+    ![使能优化特性前后的查询性能柱状对比，使能后QPS明显高于未使能，性能明显提升](figures/优化特性使能前后性能对比-2.png)
 
 ## 缩略语<a name="ZH-CN_TOPIC_0000002515966786"></a>
 
 |缩略语|英文全称|中文全称|
 |--|--|--|
-|SVE|Scalable Vector Extension|可扩展向量扩展|
+|SVE|Scalable Vector Extension|可伸缩向量扩展|
 |NEON|Advanced SIMD (Single Instruction Multiple Data)|高级单指令多数据流|
 |PF|Prefetching|预取|
-|QPS|Queries Per Second|每秒查询率|
+|QPS|Queries Per Second|每秒查询数|
+
+## 修订记录
+
+|文档版本 | 发布日期 | 修改说明 |
+| --------| -------- | -------- |
+|01| 2025-03-30 | 第一次正式发布。 |

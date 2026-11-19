@@ -1,12 +1,12 @@
 # 版本说明书
 
-## 2025-06-30
+## 25.1.RC1
 
 ### 修改记录
 
 | 文档版本 | 发布日期       | 修改说明                                                                                                                                 |
 | ---- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| 02   | 2025-06-30 |- 持续优化KBest算法，新增build\_index\_type、graph\_opt\_iter、reorder、adding\_pref、patience和level参数。<br>- 首次发布Milvus KScaNN优化特性。 |
+| 01   | 2025-06-30 |- 持续优化KBest算法，新增build\_index\_type、graph\_opt\_iter、reorder、adding\_pref、patience和level参数。<br>- 首次发布Milvus KScaNN优化特性。 |
 
 ### 版本配套说明
 
@@ -14,7 +14,7 @@
 
 | 产品名称      | 产品版本     |
 | --------- | -------- |
-| BoostKit | 25.1.RC1 |
+| Kunpeng BoostKit | 25.1.RC1 |
 
 #### 软件版本配套说明
 
@@ -46,7 +46,7 @@
 
 ##### Milvus KBest优化
 
-持续优化KBest算法，新增build\_index\_type、graph\_opt\_iter、reorder、adding\_pref、patience和level参数。
+持续优化KBest算法，新增build\_index\_type、graph\_opt\_iter、reorder、adding\_pref、patience和level参数。新增参数的含义、取值范围与默认值见《Milvus KBest优化 特性指南》；本次为向后兼容的参数扩展，已部署的KBest索引与配置文件无需修改，升级后可按需重新构建索引以启用新增参数。
 
 ##### Milvus KScaNN优化
 
@@ -73,7 +73,7 @@
 
 您可以通过访问[开源仓](https://gitcode.com/boostkit/milvus/tree/master/docs/zh)浏览和获取相关文档。
 
-## 2025-03-30
+## 25.0.RC1
 
 ### 修改记录
 
@@ -87,7 +87,7 @@
 
 | 产品名称      | 产品版本     |
 | --------- | -------- |
-| BoostKit | 25.0.RC1 |
+| Kunpeng BoostKit | 25.0.RC1 |
 
 #### 软件版本配套说明
 
@@ -127,7 +127,7 @@ KBest（Kunpeng Blazing-fast embedding similarity search thruster）是鲲鹏自
 
 SVE（Scalable Vector Extension，可伸缩向量扩展）是由ARM公司开发的一种指令集扩展，旨在通过向量化技术提升计算密集型应用的性能。PF（Prefetch，预取）是一种用于优化计算机系统性能的技术，主要用于减少处理器在等待内存数据时的空闲时间。
 
-Milvus是业界领先的一种高性能、高扩展性的向量数据库，它提供强大的数据建模功能。在Milvus上使用HNSW算法或者ScaNN算法对数据集GIST进行测试时发现，两个向量之间求相似度的热点函数占比很高，而该热点函数存在大量循环和简单数学运算的操作，使用SVE指令和PF可以有效地提高函数执行效率。
+Milvus是业界领先的一种高性能、高扩展性的向量数据库，它提供强大的数据建模功能。在Milvus上使用HNSW算法或者ScaNN算法对数据集GIST进行测试时发现，两个向量之间求相似度的热点函数占比很高，而该热点函数存在大量循环和简单数学运算的操作，因此，使用SVE指令和PF可以有效地提高函数执行效率。
 
 #### 已解决的问题
 
@@ -142,7 +142,7 @@ Milvus是业界领先的一种高性能、高扩展性的向量数据库，它�
 |文档名称|内容简介|交付形式|
 |--|--|--|
 |《Milvus KBest优化 特性指南》|本文档提供Milvus使能KBest算法的环境要求、特性使能指导。|开源仓|
-|《Milvus向量指令优化 特性指南》|本文档提供Milvus向量指令优化特性的环境要求、特性使能指导。|开源仓|
+|《Milvus向量指令优化 特性指南》|本文档提供Milvus使能向量指令优化的环境要求、特性使能指导。|开源仓|
 
 ### 获取文档的方法
 
