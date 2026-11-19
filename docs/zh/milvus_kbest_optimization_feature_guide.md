@@ -115,11 +115,11 @@ Milvus在创建Collection的时候需要指定向量的维度，测试工具会�
 |R|邻居节点数|int，[11,499]|[50]|该参数影响图构建耗时和最终索引质量，一般推荐使用50，过大可能会导致构建耗时过长以及搜索性能下降，过小则会影响检索精度。|
 |L|构图时的候选节点列表|int，[11,1999]|[100]|该参数影响图构建耗时和最终索引质量，一般推荐使用100，过大可能会导致构建耗时过长。|
 |A|构图剪枝时的角度阈值|int，[10,360]|[60]|对于IP数据集，一般使用120，L2数据集一般使用60。|
-|init_builder_type|构建的索引算法名称|const std::string&，“RNNDescent”“NNDescent”|"RNNDescent"|无特殊情况，优先使用RNNDescent。|
+|init_builder_type|构建的索引算法名称|const std::string&，<br>“RNNDescent”<br>“NNDescent”|"RNNDescent"|无特殊情况，优先使用RNNDescent。|
 |consecutive|块大小|int，[1,31]|[20]|根据实际情况自行调整。|
 |efs|检索时的候选节点列表大小|int，[1,构图节点数]|[400]|对于小规模数据集，一般在10~500左右。更大的efs会带来更高的检索精度，但是检索性能也会降低。建议在精度达标情况下efs取较小值。|
 |num_search_thread|查询时线程数|int，[1,cpu核数]|[1]|根据实际情况自行调整。|
-|build_index_type|构图时的索引类型，选择邻居节点的策略|const std::string &"HNSW""SSG""NSG""TSDG"|"SSG"|无特殊情况，优先使用"SSG"。|
+|build_index_type|构图时的索引类型，选择邻居节点的策略|const std::string &<br>"HNSW"<br>"SSG"<br>"NSG"<br>"TSDG"|"SSG"|无特殊情况，优先使用"SSG"。|
 |graph_opt_iter|构图时图索引自我迭代的轮数|int，[0, 30]|[6]|该参数影响图构建耗时和最终索引质量，过大可能会导致构建耗时过长。|
 |reorder|构图之后是否重排|bool，true或false|[true]|该参数影响图构建耗时和最终索引质量，建议开启。|
 |adding_pref|检索前超参候选集插入阈值|int，大于0|[52]|该参数用来限制搜索路径长度，提前停止检索。数值根据实际情况进行调整。|
